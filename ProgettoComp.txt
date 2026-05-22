@@ -71,7 +71,7 @@ Come pensa il research agent?
 
 search: tavily, brave, google search
 RAG: chromaDB, FAISS
-KG: neo4j
+KG: fatto in casa, con nodi e relazioni, salvato in JSON
 
 **PARTE 4** Come strutturare il KG
 
@@ -86,3 +86,11 @@ ESEMPIO DI RELAZIONE:
     (Post)-[:COVERS]->(Topic),
     (Topic)-[:RELATED_TO]->(Topic),
     (Post)-[:HAS_TAG]->(Tag)
+
+
+
+SCALETTA DEL PROGETTO
+1. Implementazione del KG (classi, metodi per aggiungere nodi/relazioni) (FATTO)
+2. Implementazione dei tool di utilizzo del KG (query, estrazione di informazioni) (FATTO)
+3. Creazione di una classe Stato per dare memoria agli agenti (IN CORSO)
+4. Implementazione del planner agent (DA FARE)

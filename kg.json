@@ -5,7 +5,7 @@
       "properties": {
         "name": "Artificial Intelligence"
       },
-      "created_at": "2026-05-21T17:19:23.415355"
+      "created_at": "2026-05-22T08:42:25.149944"
     },
     "post_llm_intro": {
       "type": "Post",
@@ -13,7 +13,23 @@
         "title": "Intro to LLMs",
         "url": "https://example.com/llm"
       },
-      "created_at": "2026-05-21T17:19:23.416014"
+      "created_at": "2026-05-22T08:42:25.150627"
+    },
+    "topic_1": {
+      "type": "Topic",
+      "properties": {
+        "name": "Intelligenza Artificiale",
+        "description": "Il campo dell'informatica che si occupa di creare sistemi in grado di svolgere compiti che richiederebbero intelligenza umana."
+      },
+      "created_at": "2026-05-22T09:27:50.061149"
+    },
+    "post_1": {
+      "type": "Post",
+      "properties": {
+        "title": "Introduzione all'Intelligenza Artificiale",
+        "date": "2026-05-21"
+      },
+      "created_at": "2026-05-22T09:27:50.062010"
     }
   },
   "relationships": [
@@ -21,6 +37,26 @@
       "source": "post_llm_intro",
       "relation": "COVERS",
       "target": "topic_ai"
+    },
+    {
+      "source": "post_llm_intro",
+      "relation": "COVERS",
+      "target": "topic_ai"
+    },
+    {
+      "source": "post_1",
+      "relation": "COVERS",
+      "target": "topic_1"
+    },
+    {
+      "source": "post_1",
+      "relation": "COVERS",
+      "target": "topic_1"
+    },
+    {
+      "source": "post_1",
+      "relation": "COVERS",
+      "target": "topic_1"
     }
   ]
 }

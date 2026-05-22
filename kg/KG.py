@@ -42,7 +42,7 @@ class KG():
         self.load()
 
     def add_node(self, node_id: str, node_type: str, properties: Dict[str, Any] = None):
-        """Aggiunge un nodo con validazione del tipo"""
+        #Aggiunge un nodo con validazione del tipo
         valid_types = {"Topic", "Post", "Entity", "Event", "Tag", "Resource"}
         if node_type not in valid_types:
             raise ValueError(f"node_type must be one of {valid_types}")
@@ -55,7 +55,7 @@ class KG():
         self.save()
     
     def add_relationship(self, source: str, relation: str, target: str):
-        """Aggiunge una relazione con validazione"""
+        #Aggiunge una relazione con validazione
         valid_relations = {"COVERS", "RELATED_TO", "REQUIRES", "MENTIONS", "HAS_TAG", "LOCATED_IN"}
         if relation not in valid_relations:
             raise ValueError(f"relation must be one of {valid_relations}")
@@ -77,19 +77,22 @@ class KG():
         return self.data["nodes"].get(node_id)
     
     def get_nodes_by_type(self, node_type: str):
-        return {
-        node_id: node
-        for node_id, node in self.data["nodes"].items()
-        if node["type"] == node_type
-    }
+        output = {}
+        for node_id, node in self.data["nodes"].items():
+            if node["type"] == node_type:
+                output[node_id] = node
+        return output
 
     def get_relationships(self, node_id):
-        """Restituisce tutte le relazioni che coinvolgono il nodo."""
-        return [rel for rel in self.data["relationships"] 
-                if rel["source"] == node_id or rel["target"] == node_id]
+        #Restituisce tutte le relazioni che coinvolgono il nodo.
+        output = []
+        for rel in self.data["relationships"]:
+            if rel["source"] == node_id or rel["target"] == node_id:
+                output.append(rel)
+        return output
 
     def get_connected_nodes(self, node_id, relation=None):
-        """Trova gli ID dei nodi connessi. Opzionalmente filtra per tipo di relazione."""
+        #Trova gli ID dei nodi connessi. Opzionalmente filtra per tipo di relazione
         connected = []
         for rel in self.data["relationships"]:
             if relation and rel["relation"] != relation:
@@ -104,7 +107,7 @@ class KG():
         return list(set(connected))
 
     def get_posts_about_topic(self, topic_id):
-        """Restituisce i nodi di tipo Post associati a un certo Topic."""
+        #Restituisce i nodi di tipo Post associati a un certo Topic.
         connected_ids = self.get_connected_nodes(topic_id)
         posts = []
         for n_id in connected_ids:
@@ -114,12 +117,12 @@ class KG():
         return posts
     
     def save(self):
-        """Salva su file JSON"""
+        #Salva su file JSON
         with open(self.path, 'w') as f:
             json.dump(self.data, f, indent=2)
 
     def load(self):
-        """Carica il grafo dal file JSON se esiste."""
+        #Carica il grafo dal file JSON se esiste.
         if os.path.exists(self.path):
             with open(self.path, 'r') as f:
                 self.data = json.load(f)
