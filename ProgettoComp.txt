@@ -1,0 +1,88 @@
+**PARTE 1** Stabilire cosa fare
+
+Il progetto prevede di creare un blog sportivo che utilizza la AI agentica come supporto alla generazione di contenuti.
+L'agente dovrà essere in grado di:
+    1. Verificare l'accuratezza delle informazioni raccolte da fonti esterne.
+    2. Selezionare fra le risorse su internet quelle più affidabili e pertinenti.
+    3. Presentare un post di cui fare review (human in the loop) prima della pubblicazione.
+    4. Consigliare i topic di possibili posts.
+    5. Mantenere memoria dei post precedenti e dei suggerimenti.
+    6. L'agente pianifica una sequenza di post e giustifica le sue scelte. 
+
+Bisognera' usare un knowlege graph per mantenere memoria del blog. 
+
+L'ambito sara' quello del calcio europeo. 
+
+**PARTE 2** Architettura del progetto
+
+USER -> planner agent -> research agent -> RAG retrieval -> KG query -> Writer agent ->  USER (review) -> KG update
+------------------------------------------------------------------------
+Lo User decide il topic
+
+Il planner agent ha memoria dei post, legge il KG, genera un piano di N post giustificando le sue scelte e torna
+in output un piano di post da scrivere.
+
+Il research agent funziona in ReAct style. Ha accesso a tools di ricerca su internet e accesso al KG. In output torna fatti verificati.
+
+Il write agent prende i fatti verificati e scrive un draft del post. In output torna un draft del post di cui bisogna fare review.
+
+Lo human in the loop fa review del post e da feedback. Se il post va bene, allora si aggiorna il KG con le nuove informazioni. Se il post non va bene, allora si torna al writer agent con i feedback per migliorare il post.
+
+Se il post va bene, allora si aggiorna il KG con le nuove informazioni. Se il post non va bene, allora si torna al writer agent con i feedback per migliorare il post.
+------------------------------------------------------------------------
+Come pensa il research agent?
+    Thought:
+    Need recent information about Inter tactical changes.
+
+    Action:
+    KG_query("Inter recent topics")
+
+    Observation:
+    ["Inter defense", "Champions League", "injuries"]
+
+    Thought:
+    Avoid repeating recent content. Search for tactical analysis.
+
+    Action:
+    Search("Inter tactical analysis recent matches")
+
+    Observation:
+    [article1, article2]
+
+    Thought:
+    Need statistical evidence.
+
+    Action:
+    Stats_tool("Inter last 5 matches possession xG")
+
+    Observation:
+    [xG data]
+
+    Thought:
+    Need consistency with previous blog posts.
+
+    Action:
+    RAG_retrieval("Inter previous analyses")
+
+    Observation:
+    [retrieved chunks]
+
+**PARTE 3** Strumenti da usare
+
+search: tavily, brave, google search
+RAG: chromaDB, FAISS
+KG: neo4j
+
+**PARTE 4** Come strutturare il KG
+
+Topic          → "winch maintenance", "sailing knots"
+Entity         → "Harken", "Bowline knot", "Mediterranean Sea"
+Event          → "Genoa Boat Show 2026", "Palermo Sailing Week"
+Resource       → "article: doi:10.1234/sailing", "video: YouTube-xyz"
+Post           → "blog_post_2026_03_15" (ciò che hai già pubblicato)
+Tag            → "beginner", "safety", "gear review"
+
+ESEMPIO DI RELAZIONE:
+    (Post)-[:COVERS]->(Topic),
+    (Topic)-[:RELATED_TO]->(Topic),
+    (Post)-[:HAS_TAG]->(Tag)
