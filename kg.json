@@ -37,7 +37,7 @@
         "name": "Inter",
         "description": "La squadra piu' bella del mondo"
       },
-      "created_at": "2026-05-22T09:55:40.122358"
+      "created_at": "2026-05-22T16:27:42.425454"
     },
     "post_2": {
       "type": "Post",
@@ -45,7 +45,7 @@
         "title": "Inter ti amo",
         "date": "2026-05-21"
       },
-      "created_at": "2026-05-22T09:55:40.123280"
+      "created_at": "2026-05-22T16:27:42.426521"
     }
   },
   "relationships": [
@@ -78,6 +78,11 @@
       "source": "post_1",
       "relation": "COVERS",
       "target": "topic_1"
+    },
+    {
+      "source": "post_2",
+      "relation": "COVERS",
+      "target": "topic_2"
     },
     {
       "source": "post_2",

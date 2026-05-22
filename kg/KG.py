@@ -128,3 +128,12 @@ class KG():
                 self.data = json.load(f)
         else:
             self.data = {"nodes": {}, "relationships": []}
+
+    def reset(self):
+        #Resetta il grafo cancellando tutti i dati
+        self.data = {"nodes": {}, "relationships": []}
+        self.save()
+        #reset the json file as well
+        with open(self.path, 'w') as f:
+            json.dump(self.data, f, indent=2)
+            

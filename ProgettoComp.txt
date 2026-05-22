@@ -88,9 +88,26 @@ ESEMPIO DI RELAZIONE:
     (Post)-[:HAS_TAG]->(Tag)
 
 
+ESEMPIO DI GRAFO LANGGRAPH
+
+START
+ ↓
+planner_node
+ ↓
+research_node
+ ↓
+writer_node
+ ↓
+review_node
+ ↓
+kg_update_node
+ ↓
+END
+
 
 SCALETTA DEL PROGETTO
 1. Implementazione del KG (classi, metodi per aggiungere nodi/relazioni) (FATTO)
 2. Implementazione dei tool di utilizzo del KG (query, estrazione di informazioni) (FATTO)
 3. Creazione di una classe Stato per dare memoria agli agenti (IN CORSO)
 4. Implementazione del planner agent (DA FARE)
+

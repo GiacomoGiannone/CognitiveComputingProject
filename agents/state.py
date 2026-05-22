@@ -1,4 +1,4 @@
-from typing import TypedDict, List
+from typing import TypedDict, List, Any
 
 class AgentState(TypedDict):
     #Struttura dati per rappresentare lo stato di un agente
@@ -16,7 +16,7 @@ class AgentState(TypedDict):
     #torna in output: informazioni acquisite sul topic, da salvare nel KG
 
     verified_info :str #informazioni verificate e pronte per essere aggiunte al KG
-    reasoning_trace :str #traccia del ragionamento usato per verificare le informazioni
+    reasoning_trace :List[dict] #traccia del ragionamento usato per verificare le informazioni
 
     #cosa serve al content creation agent?
     #riceve in input: informazioni verificate dal research agent
@@ -29,6 +29,11 @@ class AgentState(TypedDict):
     #torna in output: feedback sul contenuto, per migliorarlo prima di aggiungerlo al KG
 
     content_feedback :str #feedback sul contenuto creato, per migliorarlo
+
+    #oggetti condivisi dal grafo
+    kg :Any
+    model :Any
+    model_name :str
 
 
 
