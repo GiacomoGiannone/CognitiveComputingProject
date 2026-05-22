@@ -1,13 +1,9 @@
-from kg.KG import KG
-
-kg = KG()
-
-def get_topics_already_covered(topic_id):
+def get_topics_already_covered(kg, topic_id):
     posts = kg.get_posts_about_topic(topic_id)
 
     return len(posts) > 0
 
-def get_N_most_recent_topics( N=5):
+def get_N_most_recent_topics(kg, N=5):
     #first we get the posts
     posts = kg.get_nodes_by_type("Post")
 

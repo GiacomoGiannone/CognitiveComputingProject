@@ -21,7 +21,7 @@
         "name": "Intelligenza Artificiale",
         "description": "Il campo dell'informatica che si occupa di creare sistemi in grado di svolgere compiti che richiederebbero intelligenza umana."
       },
-      "created_at": "2026-05-22T09:27:50.061149"
+      "created_at": "2026-05-22T09:45:54.135087"
     },
     "post_1": {
       "type": "Post",
@@ -29,7 +29,23 @@
         "title": "Introduzione all'Intelligenza Artificiale",
         "date": "2026-05-21"
       },
-      "created_at": "2026-05-22T09:27:50.062010"
+      "created_at": "2026-05-22T09:45:54.135854"
+    },
+    "topic_2": {
+      "type": "Topic",
+      "properties": {
+        "name": "Inter",
+        "description": "La squadra piu' bella del mondo"
+      },
+      "created_at": "2026-05-22T09:55:40.122358"
+    },
+    "post_2": {
+      "type": "Post",
+      "properties": {
+        "title": "Inter ti amo",
+        "date": "2026-05-21"
+      },
+      "created_at": "2026-05-22T09:55:40.123280"
     }
   },
   "relationships": [
@@ -57,6 +73,41 @@
       "source": "post_1",
       "relation": "COVERS",
       "target": "topic_1"
+    },
+    {
+      "source": "post_1",
+      "relation": "COVERS",
+      "target": "topic_1"
+    },
+    {
+      "source": "post_2",
+      "relation": "COVERS",
+      "target": "topic_2"
+    },
+    {
+      "source": "post_2",
+      "relation": "COVERS",
+      "target": "topic_2"
+    },
+    {
+      "source": "post_2",
+      "relation": "COVERS",
+      "target": "topic_2"
+    },
+    {
+      "source": "post_2",
+      "relation": "COVERS",
+      "target": "topic_2"
+    },
+    {
+      "source": "post_2",
+      "relation": "COVERS",
+      "target": "topic_2"
+    },
+    {
+      "source": "post_2",
+      "relation": "COVERS",
+      "target": "topic_2"
     }
   ]
 }

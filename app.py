@@ -12,7 +12,7 @@ def main():
 
 	#Inizializza lo stato degli agenti
 	state = {
-		"user_input": "Voglio saperne di più sull'intelligenza artificiale",
+		"user_input": "Voglio scrivere articoli su delle squadre della Serie A, ma non so da dove iniziare. Cosa mi consigli?",
 		"recent_topics": [],
 		"chosen_topic": None,
 		"verified_info": None,
@@ -23,16 +23,16 @@ def main():
 
 	#Aggiungiamo un nodo di esempio al KG e vediamo se il modello capisce che non deve 
 	#scegliere i topic gia' coperti di recente
-	kg.add_node("topic_1", "Topic", {"name": "Intelligenza Artificiale", "description": "Il campo dell'informatica che si occupa di creare sistemi in grado di svolgere compiti che richiederebbero intelligenza umana."})
-	kg.add_node("post_1", "Post", {"title": "Introduzione all'Intelligenza Artificiale", "date": "2026-05-21"})
-	kg.add_relationship("post_1", "COVERS", "topic_1")
+	kg.add_node("topic_2", "Topic", {"name": "Inter", "description": "La squadra piu' bella del mondo"})
+	kg.add_node("post_2", "Post", {"title": "Inter ti amo", "date": "2026-05-21"})
+	kg.add_relationship("post_2", "COVERS", "topic_2")
 
 	#Inizializza il modello (sostituisci con il tuo modello preferito)
 	model = ollama.Client()
 	model_name = "llama3.1"
 
 	#Inizializza il planner agent
-	planner = planner_agent.Planner_agent(state, model, model_name=model_name)
+	planner = planner_agent.Planner_agent(state, model, kg, model_name=model_name)
 
 	#Esempio di utilizzo del planner agent per scegliere un topic
 	chosen_topic = planner.choose_topic()
