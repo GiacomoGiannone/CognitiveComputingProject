@@ -23,7 +23,7 @@ def main():
 	model_name = "llama3.1"
 
 	initial_state = {
-		"user_input": "Voglio scrivere degli articoli di calciomercato",
+		"user_input": "Notizie Juventus Vlahovic",
 		"recent_topics": [],
 		"chosen_topic": None,
 		"verified_info": None,

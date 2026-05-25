@@ -15,16 +15,9 @@ class ResearchAgent:
         reasoning_trace = []
         tool_outputs = {}
         
-        # Iniettiamo l'anno corrente per arginare i falsi positivi datati
-        from datetime import datetime
-        current_year = datetime.now().year
-        
         current_query = query
         if isinstance(current_query, str):
             current_query = current_query.split("\n")[0].strip()
-            # Forza l'anno odierno nella stringa di ricerca come salvavita
-            if str(current_year) not in current_query:
-                current_query += f" {current_year}"
             
             if len(current_query) > 400:
                 current_query = current_query[:400]

@@ -10,12 +10,13 @@ def web_search(query, max_results = 10):
         raise ValueError("TAVILY_API_KEY non è impostata nelle variabili d'ambiente.")
     client = TavilyClient(api_key=api_key)
     
-    # Usiamo topic="news" per dire a Tavily di cercare solo notizie recenti,
-    # ed evitiamo articoli obsoleti. Possiamo anche impostare search_depth="advanced" o i giorni (days=7).
+    # Rimuoviamo topic="news" perché l'algoritmo di news di Tavily 
+    # tende a concentrarsi sulle fonti inglesi mainstream o deviare rispetto 
+    # alle query specifiche in lingua italiana.
+    # Usando il search classico avanzato, cercherà esplicitamente le nostre keyword italiane.
     results = client.search(
         query, 
-        max_results=max_results, 
-        topic="news",
-        days=15 # Cerca solo negli ultimi 15 giorni
+        search_depth="advanced",
+        max_results=max_results
     )
     return results
