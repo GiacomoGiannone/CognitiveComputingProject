@@ -1,3 +1,5 @@
+from langchain.tools import tool
+
 def get_topics_already_covered(kg, topic_id):
     posts = kg.get_posts_about_topic(topic_id)
 
@@ -33,3 +35,27 @@ def get_N_most_recent_topics(kg, N=5):
 
     return topics
 
+@tool
+def add_egde_to_kg(state, topic_id, post_content):
+    """Tool per aggiungere un nuovo post che copre un topic al KG, dopo che il content creation agent ha creato il contenuto e ha ricevuto feedback positivo dal review agent."""
+    kg = state.get("kg")
+
+    if kg is None:
+        return state
+
+    new_post_id = f"post_{len(kg.data['nodes']) + 1}"
+    kg.add_node(
+        new_post_id,
+        "Post",
+        {
+            "content": post_content
+        }
+    )
+
+    kg.add_relationship(
+        new_post_id,
+        "COVERS",
+        topic_id
+    )
+
+    return state

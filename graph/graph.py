@@ -47,4 +47,6 @@ builder.add_edge("review", "kg_update")
 
 builder.add_edge("kg_update", END)
 
+#per il ciclo ReAct dovremmo aggiungere un edge che vada all'indietro
+
 graph = builder.compile()

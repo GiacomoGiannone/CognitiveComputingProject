@@ -54,31 +54,54 @@ class Planner_agent:
                     covered_match = topic_name
                     break
 
-        #ora possiamo costruire il prompt per il modello, includendo l'input dell'utente e i topic recenti
-        prompt = f"User input: {user_input}\n"
-        prompt += "Candidate topics (not covered yet):\n"
+        prompt_reasoning = f"User input: {user_input}\n"
+        prompt_reasoning += "Candidate topics (not covered yet):\n"
         for topic in uncovered_topics:
             topic_name = topic.get("properties", {}).get("name", "unknown")
-            prompt += f"- {topic_name} (id: {topic['id']})\n"
+            prompt_reasoning += f"- {topic_name} (id: {topic['id']})\n"
         if covered_topics:
             covered_list = ", ".join(covered_topics)
-            prompt += (
+            prompt_reasoning += (
                 f"Already covered topics in the KG: {covered_list}. "
-                "Start your reply by stating that these topics were already covered."
+                "You must NOT choose any of these covered topics. "
             )
         if covered_match:
-            prompt += (
-                f"The user asked about a topic already covered: {covered_match}. "
-                "You must NOT choose a covered topic. Reply in Italian with one sentence that says it was already covered and then suggest a different topic."
+            prompt_reasoning += (
+                f"The user specifically asked about a topic already covered: {covered_match}. "
+                "You must NOT choose this topic. "
             )
-        else:
-            prompt += "Based on the user input and the candidate topics, choose one topic to research further. If none are relevant, suggest a new topic."
+        
+        prompt_reasoning += (
+            "Analyze the user input to thoroughly understand their intent. "
+            "Based on the user input, choose EXACTLY ONE specific topic to research further.\n"
+            "If the user asks for a specific subject like 'calciomercato' (transfer market), make sure your chosen topic reflects that "
+            "(for example, choosing a specific team and adding 'calciomercato', or focusing generally on 'calciomercato Serie A').\n"
+            "Explain your reasoning for choosing this topic in Italian. Ensure the chosen topic perfectly matches what the user wants to write about."
+        )
 
-        #Ora chiamiamo il modello per ottenere la scelta del topic
-        response_text = self._generate(prompt)
-        #Supponiamo che il modello risponda con l'id del topic scelto o con un nuovo topic da aggiungere
-        chosen_topic = response_text.strip()
+        # Prima chiamata: Chiediamo al modello di spiegare il ragionamento
+        reasoning = self._generate(prompt_reasoning).strip()
+        
+        # Seconda chiamata: Estraiamo SOLO la stringa del topic basandoci sul ragionamento
+        prompt_extraction = (
+            f"Here is an explanation of a chosen topic:\n\"{reasoning}\"\n\n"
+            "Based on this reasoning, construct a CONCISE, highly effective search query (2-5 words) to find recent news for this specific context.\n"
+            "If the context is about a team's transfer market, output e.g., 'Milan calciomercato' or 'Juventus calciomercato'.\n"
+            "If it's general transfer market, output 'Calciomercato Serie A'.\n"
+            "If the user just wants team news, output e.g., 'Napoli ultime notizie'.\n\n"
+            "Reply ONLY with the exact search query and nothing else. "
+            "Do not include any punctuation, quotes, or explanations."
+        )
+        
+        chosen_topic = self._generate(prompt_extraction).strip()
+
         self.state['recent_topics'] = recent_topics
         self.state['chosen_topic'] = chosen_topic
+        
+        if 'reasoning_trace' not in self.state:
+            self.state['reasoning_trace'] = []
+        self.state['reasoning_trace'].append(f"Planner reasoning: {reasoning}")
+        
+        print(f"\n[planner] reasoning: {reasoning}\n")
         print("Planner state:", self.state)
         return chosen_topic

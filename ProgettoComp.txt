@@ -108,6 +108,9 @@ END
 SCALETTA DEL PROGETTO
 1. Implementazione del KG (classi, metodi per aggiungere nodi/relazioni) (FATTO)
 2. Implementazione dei tool di utilizzo del KG (query, estrazione di informazioni) (FATTO)
-3. Creazione di una classe Stato per dare memoria agli agenti (IN CORSO)
-4. Implementazione del planner agent (DA FARE)
+3. Creazione di una classe Stato per dare memoria agli agenti (FATTO)
+4. Aggiungere i campi tool_outputs, kg_summary, plan e citations alla classe Stato (IN CORSO) (e' richiesto nella sezione MCP)
+5. implementare il planner agent che legge il KG e pianifica i post (FATTO)
+6. implementare il research agent che funziona in ReAct style (IN CORSO)
+
 

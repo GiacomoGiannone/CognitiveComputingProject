@@ -1,14 +1,14 @@
 import google.genai as genai
 
-from kg.KG import KG
-
-from agents import planner_agent
-
+from dotenv import load_dotenv
 import ollama
 
+from kg.KG import KG
 from graph.graph import graph
 
 def main():
+	load_dotenv()
+	
 	#Inizializza il Knowledge Graph
 	kg = KG()
 	kg.reset() #Pulisce il grafo all'inizio di ogni esecuzione, per testare da zero
@@ -23,11 +23,12 @@ def main():
 	model_name = "llama3.1"
 
 	initial_state = {
-		"user_input": "Voglio scrivere articoli su delle squadre della Serie A, ma non so da dove iniziare. Cosa mi consigli?",
+		"user_input": "Voglio scrivere degli articoli di calciomercato",
 		"recent_topics": [],
 		"chosen_topic": None,
 		"verified_info": None,
 		"reasoning_trace": [],
+		"tool_outputs": {},
 		"created_content": None,
 		"content_feedback": None,
 		"kg": kg,
@@ -37,7 +38,8 @@ def main():
 
 	result = graph.invoke(initial_state)
 
-	print(result)
+	print(result.get("chosen_topic"))
+	print(result.get("verified_info"))
 
 if __name__ == "__main__":
 	main()

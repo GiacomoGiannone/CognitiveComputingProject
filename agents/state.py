@@ -17,6 +17,7 @@ class AgentState(TypedDict):
 
     verified_info :str #informazioni verificate e pronte per essere aggiunte al KG
     reasoning_trace :List[dict] #traccia del ragionamento usato per verificare le informazioni
+    tool_outputs :dict #output dei tool usati (search, rag, kg, ecc.)
 
     #cosa serve al content creation agent?
     #riceve in input: informazioni verificate dal research agent
