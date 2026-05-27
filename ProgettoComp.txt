@@ -112,5 +112,6 @@ SCALETTA DEL PROGETTO
 4. Aggiungere i campi tool_outputs, kg_summary, plan e citations alla classe Stato (IN CORSO) (e' richiesto nella sezione MCP)
 5. implementare il planner agent che legge il KG e pianifica i post (FATTO)
 6. implementare il research agent che funziona in ReAct style (IN CORSO)
-
+7. Quando viene aggiunto un nuovo post, bisogna controllare tra i topic esistenti. Se non viene trovato un topic simile,
+allora se ne crea uno nuovo.
 
