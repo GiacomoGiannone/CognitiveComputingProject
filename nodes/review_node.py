@@ -1,4 +1,5 @@
 def review_node(state):
+    print(f"[review] state={state}")
     print("\n" + "="*50)
     print("=== BOZZA ARTICOLO GENERATA DAL WRITER ===")
     print("="*50)
@@ -14,5 +15,7 @@ def review_node(state):
     state["content_feedback"] = feedback
 
     print(f"[review] feedback={feedback}")
+
+    print(f"[review] state_end={state}")
 
     return state

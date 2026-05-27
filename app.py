@@ -21,9 +21,10 @@ def main():
 	#Inizializza il modello (sostituisci con il tuo modello preferito)
 	model = ollama.Client()
 	model_name = "llama3.1"
+	prompt = input("Inserisci il prompt per il modello: ")
 
 	initial_state = {
-		"user_input": "Notizie Juventus Vlahovic",
+		"user_input": prompt,
 		"recent_topics": [],
 		"chosen_topic": None,
 		"verified_info": None,

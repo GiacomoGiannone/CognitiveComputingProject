@@ -6,7 +6,7 @@
         "name": "Inter",
         "description": "La squadra piu' bella del mondo"
       },
-      "created_at": "2026-05-25T10:48:44.333582"
+      "created_at": "2026-05-27T18:40:14.047125"
     },
     "post_2": {
       "type": "Post",
@@ -14,7 +14,21 @@
         "title": "Inter ti amo",
         "date": "2026-05-21"
       },
-      "created_at": "2026-05-25T10:48:44.334059"
+      "created_at": "2026-05-27T18:40:14.047624"
+    },
+    "topic_3": {
+      "type": "Topic",
+      "properties": {
+        "name": "Notizie recenti calcio Italia"
+      },
+      "created_at": "2026-05-27T18:41:07.030319"
+    },
+    "post_1": {
+      "type": "Post",
+      "properties": {
+        "content": "**Il calcio italiano sul tetto del mondo: nuove sfide e novit\u00e0 per gli Azzurri**\n\nIl calcio italiano \u00e8 al centro dell'attenzione, dopo la terza eliminazione consecutiva ai playoff di qualificazione al Mondiale. La Federazione Italiana Calcio (FIGC) ha attuato un cambiamento necessario per rifondare il sistema calcio italiano, iniziando con le dimissioni del presidente Gabriele Gravina.\n\n**Il ritorno degli Azzurri**\n\nGli Azzurri torneranno in campo l'8 giugno contro la Svezia e il 7 giugno contro la Grecia. Queste amichevoli internazionali saranno una sfida per gli Azzurri, che cercheranno di rifarsi dopo le sconfitte ai Mondiali.\n\n**Il nuovo raduno a Coverciano**\n\nA fine maggio \u00e8 previsto il nuovo raduno a Coverciano, l'ultimo della stagione 2025/2026. Questo evento sar\u00e0 un'opportunit\u00e0 per gli Azzurri di riconoscere i giovani talenti e giocatori al primo approccio con la Nazionale.\n\n**La questione del CT**\n\nIl capo delegazione Buffon dovrebbe dare notizie sulla decisione per il commissario tecnico. \u00c8 possibile che ci sia un ct ad interim, ma non \u00e8 chiaro quale sar\u00e0 la scelta della FIGC.\n\n### Altre novit\u00e0 nel mondo del calcio\n\n* Il Milan sta cercando di rifarsi dopo le sconfitte ai Mondiali e la Grecia ha annunciato un'amichevole contro l'Italia per il 7 giugno.\n* Le altre nazionali si preparano a cominciare il Mondiale in Nord America, mentre gli Azzurri saranno costretti a giocare due amichevoli angoscianti come nel 2022 con le partite contro Albania e Austria.\n\n#### Riferimenti\n\n* Fonte 1: [Calcio: notizie e risultati partite in tempo reale](https://www.calcioscommesse.it/)\n* Fonte 2: [Italia, ufficiale: ecco quando torner\u00e0 in campo dopo l\u2019eliminazione dal Mondiale. Potrebbe esserci un ct ad interim, c\u2019\u00e8 un precedente](https://www.eanews.it/notizie/italia-ufficiale-ecco-quando-tornera-in-campo-dopo-l-eliminazione-dal-mondiale-potrebbe-esserci-un-ct-ad-interim-ce-ne-si-e-stato/)\n* Fonte 3: [Notizie di calcio, risultati in diretta, risultati e trasferimenti | Calciomercato](https://www.calciomercato.com/)"
+      },
+      "created_at": "2026-05-27T18:41:07.031341"
     }
   },
   "relationships": [
@@ -22,6 +36,11 @@
       "source": "post_2",
       "relation": "COVERS",
       "target": "topic_2"
+    },
+    {
+      "source": "post_1",
+      "relation": "COVERS",
+      "target": "topic_3"
     }
   ]
 }
