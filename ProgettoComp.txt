@@ -115,3 +115,5 @@ SCALETTA DEL PROGETTO
 7. Quando viene aggiunto un nuovo post, bisogna controllare tra i topic esistenti. Se non viene trovato un topic simile,
 allora se ne crea uno nuovo.
 
+TODO importante:
+quando viene approvato un post, viene sempre sovrascritto come post_1. Cancella sempre i post vecchi attualmente
