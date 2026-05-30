@@ -10,6 +10,8 @@ class AgentState(TypedDict):
     user_input :str #il prompt o la richiesta dell'utente, da cui partire per scegliere un topic
     recent_topics :List[str] #lista di topic recenti estratti dal KG
     chosen_topic :str #topic scelto per approfondire, se applicabile
+    suggested_topic :str #topic suggerito al user, se in modalità suggest
+    planner_mode :str #"choose" o "suggest"
 
     #cosa serve al research agent?
     #riceve in input: topic scelto dal planner agent

@@ -71,9 +71,11 @@ class Planner_agent:
                 "You must NOT choose this topic. "
             )
         
+        planner_mode = self.state.get("planner_mode", "choose")
+
         prompt_reasoning += (
             "Analyze the user input to thoroughly understand their intent. "
-            "Based on the user input, choose EXACTLY ONE specific topic to research further.\n"
+            "Based on the user input, choose EXACTLY ONE specific topic.\n"
             "If the user asks for a specific subject like 'calciomercato' (transfer market), make sure your chosen topic reflects that "
             "(for example, choosing a specific team and adding 'calciomercato', or focusing generally on 'calciomercato Serie A').\n"
             "Explain your reasoning for choosing this topic in Italian. Ensure the chosen topic perfectly matches what the user wants to write about."
@@ -83,20 +85,29 @@ class Planner_agent:
         reasoning = self._generate(prompt_reasoning).strip()
         
         # Seconda chiamata: Estraiamo SOLO la stringa del topic basandoci sul ragionamento
-        prompt_extraction = (
-            f"Here is an explanation of a chosen topic:\n\"{reasoning}\"\n\n"
-            "Based on this reasoning, construct a CONCISE, highly effective search query (2-5 words) to find recent news for this specific context.\n"
-            "If the context is about a team's transfer market, output e.g., 'Milan calciomercato' or 'Juventus calciomercato'.\n"
-            "If it's general transfer market, output 'Calciomercato Serie A'.\n"
-            "If the user just wants team news, output e.g., 'Napoli ultime notizie'.\n\n"
-            "Reply ONLY with the exact search query and nothing else. "
-            "Do not include any punctuation, quotes, or explanations."
-        )
+        if planner_mode == "suggest":
+            prompt_extraction = (
+                f"Here is an explanation of a chosen topic:\n\"{reasoning}\"\n\n"
+                "Based on this reasoning, return ONLY the suggested topic for the user (2-5 words). "
+                "Do not add explanations or extra text."
+            )
+        else:
+            prompt_extraction = (
+                f"Here is an explanation of a chosen topic:\n\"{reasoning}\"\n\n"
+                "Based on this reasoning, construct a CONCISE, highly effective search query (2-5 words) to find recent news for this specific context.\n"
+                "If the context is about a team's transfer market, output e.g., 'Milan calciomercato' or 'Juventus calciomercato'.\n"
+                "If it's general transfer market, output 'Calciomercato Serie A'.\n"
+                "If the user just wants team news, output e.g., 'Napoli ultime notizie'.\n\n"
+                "Reply ONLY with the exact search query and nothing else. "
+                "Do not include any punctuation, quotes, or explanations."
+            )
         
         chosen_topic = self._generate(prompt_extraction).strip()
 
         self.state['recent_topics'] = recent_topics
         self.state['chosen_topic'] = chosen_topic
+        if planner_mode == "suggest":
+            self.state['suggested_topic'] = chosen_topic
         
         if 'reasoning_trace' not in self.state:
             self.state['reasoning_trace'] = []

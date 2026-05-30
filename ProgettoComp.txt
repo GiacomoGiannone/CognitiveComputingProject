@@ -117,3 +117,11 @@ allora se ne crea uno nuovo.
 
 TODO importante:
 quando viene approvato un post, viene sempre sovrascritto come post_1. Cancella sempre i post vecchi attualmente
+
+aggiungere anche una modalita' suggerimento in cui il nodo planner suggerisce un topic all'utente
+
+(FATTI ENTRAMBI)
+
+Adesso bisogna aggiungere il RAG in se', usando uno storage vettoriale. 
+
+Problema attuale: sembra che i post non vengano sempre aggiunt al KG. 

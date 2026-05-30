@@ -29,8 +29,18 @@ def kg_update_node(state):
             }
         )
 
+    # Generate a unique post ID instead of overwriting post_1.
+    existing_posts = kg.get_nodes_by_type("Post")
+    max_id = 0
+    for node_id in existing_posts.keys():
+        if node_id.startswith("post_"):
+            suffix = node_id.split("post_")[-1]
+            if suffix.isdigit():
+                max_id = max(max_id, int(suffix))
+    new_post_id = f"post_{max_id + 1}"
+
     kg.add_node(
-        "post_1",
+        new_post_id,
         "Post",
         {
             "content": state["created_content"]
@@ -38,7 +48,7 @@ def kg_update_node(state):
     )
 
     kg.add_relationship(
-        "post_1",
+        new_post_id,
         "COVERS",
         topic_id
     )

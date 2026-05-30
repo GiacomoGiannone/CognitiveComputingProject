@@ -17,6 +17,16 @@ def planner_node(state):
     chosen_topic = planner.choose_topic()
 
     print(f"[planner] chosen_topic={chosen_topic}")
+    if state.get("planner_mode") == "suggest":
+        print(f"[planner] suggested_topic={state.get('suggested_topic')}")
+
+        approve = input("Approve suggested topic? (y/n): ").strip().lower()
+        if approve != "y":
+            user_prompt = input("Inserisci il prompt per il modello: ")
+            state["user_input"] = user_prompt
+            state["planner_mode"] = "choose"
+            chosen_topic = planner.choose_topic()
+            print(f"[planner] chosen_topic={chosen_topic}")
 
     state["chosen_topic"] = chosen_topic
 
