@@ -41,11 +41,20 @@ class WriterAgent:
                 doc_text = doc["text"][:2000] 
                 context_text += f"\n--- Fonte {i+1}: {doc.get('title', 'Senza Titolo')} ---\n{doc_text}\n"
 
+        feedback_detail = self.state.get("content_feedback_detail", "").strip()
+        feedback_section = ""
+        if feedback_detail:
+            feedback_section = (
+                "\nNOTE DI REVISIONE (da rispettare):\n"
+                f"- {feedback_detail}\n"
+            )
+
         prompt = (
             f"Sei un giornalista sportivo esperto. Scrivi un articolo di blog avvincente in italiano basato sul seguente argomento: {topic}.\n\n"
             f"UTILIZZA ESCLUSIVAMENTE le seguenti informazioni estratte dal web (RAG) per scrivere l'articolo. "
             "Se non ci sono informazioni sufficienti, scrivi un articolo breve evidenziando solo ciò che sai dalle fonti.\n\n"
             f"FONTI:\n{context_text}\n\n"
+            f"{feedback_section}"
             "REGOLE:\n"
             "- Titolo accattivante.\n"
             "- Formattazione in Markdown (usa grassetti, liste puntate se necessario).\n"

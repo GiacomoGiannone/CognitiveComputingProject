@@ -2,7 +2,6 @@ from agents.planner_agent import Planner_agent
 
 def planner_node(state):
     print("[planner] start")
-    print(f"[planner] state={state}")
     model = state.get("model", "llama3.1")
     model_name = state.get("model_name", "llama3.1")
     kg = state.get("kg")
@@ -29,7 +28,5 @@ def planner_node(state):
             print(f"[planner] chosen_topic={chosen_topic}")
 
     state["chosen_topic"] = chosen_topic
-
-    print(f"[planner] state_end={state}")
 
     return state

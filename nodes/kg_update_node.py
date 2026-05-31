@@ -1,5 +1,4 @@
 def kg_update_node(state):
-    print(f"[kg_update] state={state}")
     kg = state.get("kg")
 
     if kg is None:
@@ -52,7 +51,5 @@ def kg_update_node(state):
         "COVERS",
         topic_id
     )
-
-    print(f"[kg_update] state_end={state}")
 
     return state

@@ -1,5 +1,4 @@
 def review_node(state):
-    print(f"[review] state={state}")
     print("\n" + "="*50)
     print("=== BOZZA ARTICOLO GENERATA DAL WRITER ===")
     print("="*50)
@@ -8,14 +7,19 @@ def review_node(state):
 
     print("[review] start")
 
-    feedback = input(
-        "Approve post? (yes/no): "
-    )
+    feedback = input("Approve post? (yes/no): ").strip().lower()
+    feedback_detail = ""
+    if feedback != "yes":
+        feedback_detail = input("Inserisci feedback per migliorare il post: ").strip()
 
     state["content_feedback"] = feedback
+    state["content_feedback_detail"] = feedback_detail
 
-    print(f"[review] feedback={feedback}")
+    if state["content_feedback"] != "yes":
+        detail = state.get("content_feedback_detail", "").strip()
+        if detail:
+            state["revision_query"] = detail
 
-    print(f"[review] state_end={state}")
+    print(f"[review] feedback={state['content_feedback']}")
 
     return state

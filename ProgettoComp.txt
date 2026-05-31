@@ -122,6 +122,8 @@ aggiungere anche una modalita' suggerimento in cui il nodo planner suggerisce un
 
 (FATTI ENTRAMBI)
 
-Adesso bisogna aggiungere il RAG in se', usando uno storage vettoriale. 
+Adesso bisogna aggiungere il RAG in se', usando uno storage vettoriale. (IN CORSO)
 
-Problema attuale: sembra che i post non vengano sempre aggiunt al KG. 
+completare il review agent
+
+

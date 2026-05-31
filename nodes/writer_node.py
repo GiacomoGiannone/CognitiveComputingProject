@@ -2,7 +2,6 @@ from agents.writer_agent import WriterAgent
 
 def writer_node(state):
     print("[writer] start")
-    print(f"[writer] state={state}")
     
     agent = WriterAgent(
         state=state, 
@@ -14,7 +13,5 @@ def writer_node(state):
     state["created_content"] = draft
     
     print("[writer] draft_ready=true")
-
-    print(f"[writer] state_end={state}")
 
     return state

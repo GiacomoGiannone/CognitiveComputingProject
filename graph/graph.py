@@ -43,7 +43,17 @@ builder.add_edge("research", "writer")
 
 builder.add_edge("writer", "review")
 
-builder.add_edge("review", "kg_update")
+def review_router(state):
+    return "kg_update" if state.get("content_feedback") == "yes" else "research"
+
+builder.add_conditional_edges(
+    "review",
+    review_router,
+    {
+        "kg_update": "kg_update",
+        "research": "research"
+    }
+)
 
 builder.add_edge("kg_update", END)
 

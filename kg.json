@@ -1,41 +1,39 @@
 {
   "nodes": {
-    "topic_2": {
+    "topic_1": {
       "type": "Topic",
       "properties": {
-        "name": "Inter",
-        "description": "La squadra piu' bella del mondo"
+        "name": "I 10 pi\u00f9 grandi talenti emergenti della stagione in corso nel calcio europeo"
       },
-      "created_at": "2026-05-30T18:33:11.498043"
+      "created_at": "2026-05-31T16:25:24.509899"
     },
     "post_1": {
       "type": "Post",
       "properties": {
-        "title": "Inter ti amo",
-        "date": "2026-05-21"
+        "content": "**I 10 pi\u00f9 grandi talenti emergenti della stagione nel calcio europeo**\n\nLa stagione 2025-2026 del calcio europeo sta lasciando il segno per i giovani talenti che stanno emergendo nelle competizioni di club. Dalla UEFA Champions League alla Europa League, questi giocatori under 20 stanno dimostrando di essere la futura speranza dei loro club e delle rispettive nazionali.\n\nEcco i 10 pi\u00f9 grandi talenti emergenti della stagione:\n\n1. **Lennart Karl** (Bayern M\u00fcnchen) - Un centrocampista tedesco di 19 anni che sta brillando nella UEFA Champions League con il Bayern.\n2. **Nico O'Reilly** (Liverpool) - Un attaccante irlandese di 20 anni che ha segnato tre gol nella stagione e sta guadagnandosi la fiducia del tecnico dei Reds.\n3. **Kenan Y\u0131ld\u0131z** (Galatasaray) - Un difensore turco di 19 anni che \u00e8 stato convocato in nazionale a soli 18 anni e sta giocando regolarmente nella UEFA Champions League con il Galatasaray.\n4. **Francesco Camarda** (Lecce, in prestito dal Milan) - Un attaccante italiano di 17 anni che ha esordito in Serie A a soli 15 anni e mezzo e sta segnando gol importanti per la sua squadra.\n5. **Samuele In\u00e1cio** (Inter) - Un attaccante italiano di 19 anni che \u00e8 entrato nel giro della prima squadra dell'Inter dopo un prestito al Como e potrebbe giocare regolarmente in stagione.\n6. **Nestory Irankunda** (Watford) - Un'ala veloce e diretta con un controllo stretto e un occhio per il gol, che arriva al Watford con grandi aspettative dietro di s\u00e9.\n7. **Sa\u00ebl Kumbedi** (Lione) - Un attaccante francese di 19 anni che sta giocando regolarmente nella Ligue 1 con il Lione e potrebbe essere un'opzione interessante per la nazionale francese.\n8. **Francesco Guerrieri** (Juventus U18) - Un centrocampista italiano di 17 anni che \u00e8 uno dei giocatori pi\u00f9 utilizzati dalla sua squadra in Europa, secondo una classifica stilata da Transfermarkt.\n9. **Maksim Krivtsov** (Dinamo Mosca) - Un difensore russo di 19 anni che sta giocando regolarmente nella UEFA Champions League con il Dinamo Mosca e potrebbe essere un'opzione interessante per la nazionale russa.\n10. **Alessandro Agovino** (Bologna) - Un attaccante italiano di 18 anni che \u00e8 entrato nel giro della prima squadra del Bologna dopo un prestito alla Piacenza e potrebbe giocare regolarmente in stagione.\n\nQuesti sono solo alcuni dei giovani talenti emergenti della stagione, ma ci sono molti altri giocatori under 20 che stanno facendo notizia nelle competizioni di club europee. La stagione 2025-2026 sembra essere un'opportunit\u00e0 ghiotta per i giovani talenti di dimostrare il loro valore e guadagnarsi una maglia da titolare.\n\n**Fonti:**\n\n* Europa League 2025-2026: 10 giovani talenti da seguire | Gazzetta.it\n* I giovani talenti che stanno lasciando il segno in Champions League: Lennart Karl, Nico O'Reilly e Kenan Y\u0131ld\u0131z | UEFA Champions League | UEFA.com\n* Chi sono gli Under 18 che giocato di pi\u00f9? Un solo italiano nella top ten europea | Calciomercato\n* The Guardian, i giovani talenti del 2025 e dove sono ora quelli del ... | The Guardian\n* La top 10 dei giovani per la prossima stagione | Diretta.it"
       },
-      "created_at": "2026-05-30T18:33:11.498540"
+      "created_at": "2026-05-31T16:25:24.510739"
     },
     "topic_3": {
       "type": "Topic",
       "properties": {
-        "name": "Calciomercato in tempo reale"
+        "name": "Ultimi movimenti calciomercato europeo"
       },
-      "created_at": "2026-05-30T18:34:04.270167"
+      "created_at": "2026-05-31T16:36:46.337033"
     },
     "post_2": {
       "type": "Post",
       "properties": {
-        "content": "**Il calciomercato \u00e8 in pieno svolgimento! Ultimi aggiornamenti e notizie in tempo reale**\n\nIl mercato estivo della Serie A si sta avvicinando alla sua conclusione, ma il calciomercato continua a essere una fonte di eccitanti novit\u00e0. Sia le squadre italiane che quelle europee stanno lavorando duramente per rinforzare i propri roster e confermare la rosa per la prossima stagione.\n\n**L'Udinese rinnova Kamara fino al 2027**\n\nIn questi ultimi giorni, l'Udinese ha confermato l'attaccante tedesco Sebastian Haller in vista della prossima stagione. La notizia \u00e8 stata data per ufficiale dal club friulano, che ha anche esteso il contratto di Kamara fino al 2027.\n\n**Chi sar\u00e0 il vice Malen?**\n\nIl capitano del Bologna, Marko Arnautovi\u0107, \u00e8 pronto a rinunciare a pi\u00f9 del 50% del proprio stipendio per non essere svincolato. La notizia \u00e8 stata data da fonti vicine alla societ\u00e0, che stanno cercando di trovare un accordo con l'attaccante.\n\n**I due calciatori azzurri saranno protagonisti anche nel nuovo progetto tecnico**\n\nL'Inter e la Juventus al lavoro per trovare un'intesa sulla stagione in corso. I due club nerazzurro e bianconero stanno cercando di trovare un accordo sulle mosse dei giocatori.\n\n**Il mercato \u00e8 in piena attivit\u00e0!**\n\nIl calciomercato \u00e8 in pieno svolgimento, con tutte le squadre che lavorano duramente per rinforzare i propri roster e confermare la rosa per la prossima stagione. Sia le trattative tra club che le parole dei calciatori sono al centro dell'attenzione.\n\n**Segui il mercato in tempo reale!**\n\nPer restare aggiornati sulle ultime notizie del calciomercato, segui i nostri canali di social media e visita la nostra pagina web per ricevere le notizie pi\u00f9 aggiornate in tempo reale."
+        "content": "**Il calciomercato europeo: ultimi movimenti in vista della finestra estiva**\n\nIl calcio europeo \u00e8 sempre pi\u00f9 un mercato in continua evoluzione, dove i club lottano per aggiudicarsi i migliori talenti e dove gli atleti sono sempre pi\u00f9 coscienti del loro valore economico. In questo scenario, il fenomeno degli svincolati sta diventando sempre pi\u00f9 diffuso.\n\n**L'aumento degli svincolati**\n\nSecondo le statistiche, l'elenco dei nomi senza contratto o con contratto in scadenza sta aumentando di anno in anno. Questa tendenza \u00e8 evidente sia negli atleti top che in quelli a fine carriera. I motivi sono principalmente economici: un calciatore svincolato pu\u00f2 firmare un nuovo accordo con un altro club senza dover pagare i costi di trasferimento.\n\n**Gli esempi pi\u00f9 notevoli**\n\nTra i nomi protagonisti del mercato a parametro zero dell'estate 2026 ci sono:\n\n* David Alaba, che lascia il Real Madrid\n* Dani Carvajal, dopo 23 stagioni al Real Madrid\n* Dani Parejo, che lascia il Villarreal\n* Robert Lewandowski, che lascia il Barcellona\n\nDa notare che questi nomi fanno parte di una lista pi\u00f9 ampia di atleti svincolati.\n\n**La Premier League non esenta**\n\nAnche la Premier League \u00e8 coinvolta in questo fenomeno. Molti giocatori della liga britannica sono finiti senza contratto, tra cui alcuni top player che possono diventare una grande risorsa per altri club europei.\n\n**Il futuro del calciomercato**\n\n\u00c8 chiaro che il calciomercato europeo \u00e8 in continua evoluzione. Gli svincolati saranno sempre di pi\u00f9 e sar\u00e0 importante per i club sapere come gestirli al meglio.\n\nFonti:\n\n* [Calciomercato: ultime notizie mercato ora per ora](https://link alla fonte)\n* [Calciomercato 2026, il boom degli svincolati racconta il nuovo calcio europeo](https://link alla fonte)"
       },
-      "created_at": "2026-05-30T18:34:04.270968"
+      "created_at": "2026-05-31T16:36:46.338042"
     }
   },
   "relationships": [
     {
       "source": "post_1",
       "relation": "COVERS",
-      "target": "topic_2"
+      "target": "topic_1"
     },
     {
       "source": "post_2",
