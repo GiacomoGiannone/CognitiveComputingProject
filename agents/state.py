@@ -33,7 +33,6 @@ class AgentState(TypedDict):
 
     content_feedback :str #feedback sul contenuto creato, per migliorarlo
     content_feedback_detail :str #feedback specifico da usare per la revisione
-    revision_query :str #query di revisione per aggiornare la ricerca
 
     #oggetti condivisi dal grafo
     kg :Any

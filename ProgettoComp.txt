@@ -126,4 +126,6 @@ Adesso bisogna aggiungere il RAG in se', usando uno storage vettoriale. (IN CORS
 
 completare il review agent
 
-
+Per quanto riguarda il feedback, possiamo fare che: l'utente manda il feedback al WRITER, il WRITER mantiene
+comunque il post che ha originariamente scritto ma tiene conto delle differenze. Le informazioni che non conosce
+vengono mandate al RESEARCH per cercare di colmare le lacune. 

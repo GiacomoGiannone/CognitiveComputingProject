@@ -15,11 +15,6 @@ def review_node(state):
     state["content_feedback"] = feedback
     state["content_feedback_detail"] = feedback_detail
 
-    if state["content_feedback"] != "yes":
-        detail = state.get("content_feedback_detail", "").strip()
-        if detail:
-            state["revision_query"] = detail
-
     print(f"[review] feedback={state['content_feedback']}")
 
     return state

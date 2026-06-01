@@ -24,6 +24,13 @@ class ResearchAgent:
         # (Pensiero -> Azione -> Osservazione) è implementato come un loop "interno" a questo agente Python
         reasoning_trace = []
         tool_outputs = {}
+
+        review_note = (self.state.get("content_feedback_detail") or "").strip()
+        if review_note:
+            reasoning_trace.append({
+                "step": "review_note",
+                "thought": f"Review note (do not change query): {review_note}"
+            })
         
         current_query = query
         if isinstance(current_query, str):
@@ -34,13 +41,20 @@ class ResearchAgent:
 
         # Prima proviamo a fare retrieval dal vector store
         rag_results = self.RAG_search(current_query)
+        tool_outputs["rag_results"] = rag_results
+        tool_outputs["clean_docs"] = rag_results
+        print("[rag] results (top):")
         if rag_results:
-            tool_outputs["rag_results"] = rag_results
-            tool_outputs["clean_docs"] = rag_results
+            for idx, doc in enumerate(rag_results[:5]):
+                title = doc.get("title", "N/A")
+                url = doc.get("url", "N/A")
+                preview = doc.get("text", "")[:200].replace("\n", " ")
+                print(f"  [{idx + 1}] {title} | {url}")
+                print(f"      {preview}...")
+        else:
+            print("  (no rag results)")
 
         for step in range(max_steps):
-            if rag_results:
-                break
             reasoning_trace.append({
                 "step": step + 1,
                 "thought": f"Need recent sources for: {current_query}"
@@ -76,9 +90,18 @@ class ResearchAgent:
 
             # Ora possiamo rifare la retrieval dal vector store
             rag_results = self.RAG_search(current_query)
+            tool_outputs["rag_results"] = rag_results
+            tool_outputs["clean_docs"] = rag_results
+            print("[rag] results (top):")
             if rag_results:
-                tool_outputs["rag_results"] = rag_results
-                tool_outputs["clean_docs"] = rag_results
+                for idx, doc in enumerate(rag_results[:5]):
+                    title = doc.get("title", "N/A")
+                    url = doc.get("url", "N/A")
+                    preview = doc.get("text", "")[:200].replace("\n", " ")
+                    print(f"  [{idx + 1}] {title} | {url}")
+                    print(f"      {preview}...")
+            else:
+                print("  (no rag results)")
 
             if len(summarized) >= 3:
                 break

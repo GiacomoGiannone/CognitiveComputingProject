@@ -39,7 +39,6 @@ def main():
 		"created_content": None,
 		"content_feedback": None,
 		"content_feedback_detail": "",
-		"revision_query": "",
 		"kg": kg,
 		"model": model,
 		"model_name": model_name
