@@ -122,4 +122,6 @@ aggiungere anche una modalita' suggerimento in cui il nodo planner suggerisce un
 
 (FATTI ENTRAMBI)
 
-Attualmente il feedback non funziona benissimo. Inserendo yes a aggiungi informazioni non ci viene dato l'articolo finale. 
+Attualmente il feedback non funziona benissimo. Inserendo yes a aggiungi informazioni non ci viene dato l'articolo finale.
+
+Inoltre, mi sembra che il tool di aggiunta dei nodi non trovi bene i topic corrispondenti. Tende sempre a mettere un topic diverso.

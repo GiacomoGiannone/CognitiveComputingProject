@@ -135,4 +135,23 @@ class KG():
         #reset the json file as well
         with open(self.path, 'w') as f:
             json.dump(self.data, f, indent=2)
+
+    def find_topic_by_name(self, name, threshold=0.6):
+        """Cerca topic per nome con similarità fuzzy"""
+        from difflib import SequenceMatcher
+        
+        topics = self.get_nodes_by_type("Topic")
+        name_lower = os.name.lower()
+        
+        matches = []
+        for node_id, node_data in topics.items():
+            topic_name = node_data.get("properties", {}).get("name", "")
+            if not topic_name:
+                continue
+            
+            ratio = SequenceMatcher(None, name_lower, topic_name.lower()).ratio()
+            matches.append((node_id, topic_name, ratio))
+        
+        matches.sort(key=lambda x: x[2], reverse=True)
+        return matches[:5]  # Top 5 match
             
