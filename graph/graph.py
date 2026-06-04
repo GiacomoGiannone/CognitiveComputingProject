@@ -7,6 +7,7 @@ from nodes.planner_node import planner_node
 from nodes.research_node import research_node
 from nodes.review_node import review_node
 from nodes.writer_node import writer_node
+from nodes.rag_helper_node import rag_helper_node
 
 builder = StateGraph(AgentState)
 
@@ -31,6 +32,11 @@ builder.add_node(
 )
 
 builder.add_node(
+    "rag_helper",
+    rag_helper_node
+)
+
+builder.add_node(
     "kg_update",
     kg_update_node
 )
@@ -44,16 +50,18 @@ builder.add_edge("research", "writer")
 builder.add_edge("writer", "review")
 
 def review_router(state):
-    return "kg_update" if state.get("content_feedback") == "yes" else "research"
+    return "kg_update" if state.get("content_feedback") == "yes" else "rag_helper"
 
 builder.add_conditional_edges(
     "review",
     review_router,
     {
         "kg_update": "kg_update",
-        "research": "research"
+        "rag_helper": "rag_helper"
     }
 )
+
+builder.add_edge("rag_helper", "research")
 
 builder.add_edge("kg_update", END)
 

@@ -22,7 +22,7 @@ def main():
 	use_suggestion = input("Vuoi un suggerimento di argomento? (y/n): ").strip().lower()
 	if use_suggestion == "y":
 		planner_mode = "suggest"
-		prompt = "Suggerisci un topic per un blog di calcio europeo."
+		prompt = "Suggerisci un topic per un blog di sport."
 	else:
 		planner_mode = "choose"
 		prompt = input("Inserisci il prompt per il modello: ")
@@ -39,6 +39,7 @@ def main():
 		"created_content": None,
 		"content_feedback": None,
 		"content_feedback_detail": "",
+		"manual_facts": "",
 		"kg": kg,
 		"model": model,
 		"model_name": model_name

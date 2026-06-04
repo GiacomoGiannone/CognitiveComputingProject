@@ -18,7 +18,6 @@ class KG():
                 "type": "Topic",
                 "properties": {
                     "nome": "Intelligenza Artificiale",
-                    "difficoltà": "alta"
                 },
                 "created_at": "2026-05-21T15:30:00.123456"
                 },

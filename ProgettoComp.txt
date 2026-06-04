@@ -122,10 +122,4 @@ aggiungere anche una modalita' suggerimento in cui il nodo planner suggerisce un
 
 (FATTI ENTRAMBI)
 
-Adesso bisogna aggiungere il RAG in se', usando uno storage vettoriale. (IN CORSO)
-
-completare il review agent
-
-Per quanto riguarda il feedback, possiamo fare che: l'utente manda il feedback al WRITER, il WRITER mantiene
-comunque il post che ha originariamente scritto ma tiene conto delle differenze. Le informazioni che non conosce
-vengono mandate al RESEARCH per cercare di colmare le lacune. 
+Attualmente il feedback non funziona benissimo. Inserendo yes a aggiungi informazioni non ci viene dato l'articolo finale. 
