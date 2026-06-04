@@ -125,3 +125,9 @@ aggiungere anche una modalita' suggerimento in cui il nodo planner suggerisce un
 Attualmente il feedback non funziona benissimo. Inserendo yes a aggiungi informazioni non ci viene dato l'articolo finale.
 
 Inoltre, mi sembra che il tool di aggiunta dei nodi non trovi bene i topic corrispondenti. Tende sempre a mettere un topic diverso.
+
+1. nei metadata dei documenti bisogna aggiungere un hash del documento.
+2. usare un retriever migliore, come CrossEncoder di sentence transformers. Definire una classe reranker
+3. fare multiquery retrieval, quindi generare diverse query per lo stesso argomento
+4. invece di passare i documenti al summarizer, potremmo estrarli prima e poi passarli al summarizer, in modo da avere un output più pulito
+5. usare un recency score invece della data grezza

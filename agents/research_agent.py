@@ -40,6 +40,12 @@ class ResearchAgent:
             return response["message"]["content"]
 
         raise TypeError("model must be an Ollama Client, a model name string, or expose generate().")
+    
+    def _generate_doc_hash(self, text, url):
+        """Genera un hash univoco per il documento"""
+        import hashlib
+        content = f"{url}:{text[:500]}"  # Primi 500 caratteri + URL
+        return hashlib.sha256(content.encode()).hexdigest()
 
     def _rag_count(self, vector_store) -> int:
         collection = getattr(vector_store, "_collection", None)
@@ -77,7 +83,7 @@ class ResearchAgent:
     def perform_research(self, query: str, max_steps: int = 2, use_rag: bool = True) -> Dict:
         reasoning_trace = []
         tool_outputs = {}
-        
+        from tools.summarize_results import _summarize_results_with_extraction
         # Handle review feedback
         review_note = (self.state.get("content_feedback_detail") or "").strip()
         if review_note:
@@ -109,7 +115,7 @@ class ResearchAgent:
             # Web search
             search_results = web_search.invoke({"query": current_query, "max_results": 15})
             tool_outputs["search"] = search_results
-            summarized = _summarize_results(search_results)
+            summarized = _summarize_results_with_extraction(search_results, max_items=5)
             
             clean_docs = _extract_clean_docs(search_results, max_items=15)
             now_iso = datetime.now(timezone.utc).isoformat()
@@ -178,6 +184,16 @@ class ResearchAgent:
             title = doc.get("title")
             if not text or not url:
                 continue
+
+            doc_hash = self._generate_doc_hash(text, url)
+
+            existing = vector_store.similarity_search_with_score(
+            f"hash:{doc_hash}", k=1, filter={"hash": doc_hash}
+        )
+            if existing and existing[0][1] > 0.95:
+                print(f"[RAG] Skipping duplicate document: {url}")
+                continue
+            
             docs.append(
                 Document(
                     page_content=text,
@@ -186,6 +202,8 @@ class ResearchAgent:
                         "title": title,
                         "fetched_at": now_iso,
                         "topic": query,
+                        "hash": doc_hash,
+                        "content_length": len(text)
                     },
                 )
             )
@@ -199,48 +217,6 @@ class ResearchAgent:
             vector_store.add_documents(splits)
             print(f"[RAG] Added {len(splits)} chunks for topic '{query}'")
 
-    def _rag_search(self, query: str, topic_filter: Optional[str] = None, vector_store: Optional[Chroma] = None) -> List[Dict]:
-            """Search vector store with soft topic filtering"""
-            rag_config = self.state.get("rag_config", {})
-            top_k = rag_config.get("top_k", 15)
-            score_threshold = rag_config.get("score_threshold", 0.35)
-
-            if vector_store is None:
-                vector_store = self._get_vector_store()
-
-            # Get more results for soft filtering
-            results = vector_store.similarity_search_with_score(
-                query,
-                k=top_k * 2,
-            )
-
-            filtered = []
-            for d, score in results:
-                if score < score_threshold:
-                    continue
-                    
-                doc_topic = d.metadata.get("topic", "")
-                final_score = score
-                
-                # Apply soft topic filter
-                if topic_filter and doc_topic:
-                    if topic_filter.lower() in doc_topic.lower():
-                        final_score = score * 1.1
-                    elif not any(word in doc_topic.lower() for word in query.lower().split()[:3]):
-                        final_score = score * 0.7
-                        
-                filtered.append({
-                    "text": d.page_content,
-                    "url": d.metadata.get("source", "URL non disponibile"),  # Assicurati che l'URL sia presente
-                    "title": d.metadata.get("title", "Senza titolo"),
-                    "fetched_at": d.metadata.get("fetched_at"),
-                    "score": final_score,
-                    "topic": doc_topic,
-                    "source_type": "rag"
-                })
-
-            filtered.sort(key=lambda x: x["score"], reverse=True)
-            return filtered[:top_k]
 
     def _generate_verified_info(self, query: str, docs: List[Dict]) -> str:
         """Generate verified summary from documents"""
@@ -280,3 +256,183 @@ class ResearchAgent:
             print("[RAG DEBUG] Store is empty!")
 
         return count
+    
+    def _generate_multi_queries(self, original_query, num_queries=3):
+        """Genera query alternative per lo stesso argomento"""
+        
+        prompt = f"""
+        Data la query originale: "{original_query}"
+        Genera {num_queries} query di ricerca alternative ma correlate che potrebbero trovare 
+        informazioni complementari o diverse prospettive su questo argomento.
+        
+        Restituisci SOLO le query, una per riga, senza numeri o spiegazioni.
+        """
+        
+        response = self._generate(prompt)
+        queries = [q.strip() for q in response.strip().split('\n') if q.strip()]
+        
+        # Aggiungi la query originale
+        all_queries = [original_query] + queries[:num_queries]
+        
+        print(f"[MultiQuery] Generate {len(all_queries)} queries:")
+        for q in all_queries:
+            print(f"  - {q}")
+        
+        return all_queries
+
+    def _multi_query_retrieval(self, query, vector_store, top_k=5):
+        """Esegue retrieval con multiple query e combina i risultati"""
+        
+        # Genera query alternative
+        queries = self._generate_multi_queries(query, num_queries=3)
+        
+        all_results = []
+        seen_urls = set()
+        
+        for q in queries:
+            results = vector_store.similarity_search_with_score(q, k=top_k)
+            
+            for doc, score in results:
+                url = doc.metadata.get("source", "")
+                if url in seen_urls:
+                    continue
+                seen_urls.add(url)
+                
+                all_results.append({
+                    "text": doc.page_content,
+                    "url": url,
+                    "title": doc.metadata.get("title", ""),
+                    "fetched_at": doc.metadata.get("fetched_at", ""),
+                    "topic": doc.metadata.get("topic", ""),
+                    "score": score,
+                    "query_used": q
+                })
+        
+        # Aggrega e deduplica
+        return self._aggregate_multi_query_results(all_results, top_k)
+
+    def _aggregate_multi_query_results(self, results, top_k):
+        """Aggrega risultati da multiple query usando max score"""
+        
+        # Raggruppa per URL
+        grouped = {}
+        for r in results:
+            url = r["url"]
+            if url not in grouped:
+                grouped[url] = r
+            else:
+                # Prendi lo score più alto tra le query
+                grouped[url]["score"] = max(grouped[url]["score"], r["score"])
+        
+        # Converti in lista e ordina
+        aggregated = list(grouped.values())
+        aggregated.sort(key=lambda x: x["score"], reverse=True)
+        
+        return aggregated[:top_k]
+    
+    # research_agent.py - Aggiungi recency scoring
+
+    def _calculate_recency_score(self, timestamp, max_age_days=30):
+        """
+        Calcola un recency score normalizzato tra 0 e 1.
+        Più recente = punteggio più alto.
+        """
+        if not timestamp:
+            return 0.5  # Valore neutro se non disponibile
+        
+        try:
+            if isinstance(timestamp, str):
+                dt = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+            else:
+                dt = timestamp
+                
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+                
+            now = datetime.now(timezone.utc)
+            age_hours = (now - dt).total_seconds() / 3600.0
+            age_days = age_hours / 24.0
+            
+            # Decadimento esponenziale: score = e^(-age_days / half_life)
+            half_life_days = 7  # Emivita di 7 giorni
+            import numpy as np
+            recency_score = np.exp(-age_days / half_life_days)
+            
+            # Normalizza tra 0 e 1
+            recency_score = max(0, min(1, recency_score))
+            
+            return recency_score
+            
+        except Exception as e:
+            print(f"[Recency] Error calculating recency: {e}")
+            return 0.5
+
+    def _score_document(self, doc, query, topic_filter=None):
+        """
+        Calcola score composito per un documento usando:
+        - Similarità semantica (score originale)
+        - Recency score
+        - Topic relevance
+        """
+        final_score = doc.get("score", 0.5)
+        
+        # Recency component (peso 20%)
+        timestamp = doc.get("fetched_at")
+        if timestamp:
+            recency = self._calculate_recency_score(timestamp)
+            final_score = final_score * 0.8 + recency * 0.2
+        
+        # Topic relevance (peso 10% se topic_filter presente)
+        if topic_filter:
+            doc_topic = doc.get("topic", "")
+            if doc_topic:
+                from difflib import SequenceMatcher
+                topic_similarity = SequenceMatcher(None, 
+                    topic_filter.lower(), doc_topic.lower()).ratio()
+                final_score = final_score * 0.9 + topic_similarity * 0.1
+        
+        return final_score
+
+    # Aggiorna RAG_search per usare recency score
+    def _rag_search(self, query, topic_filter=None, vector_store=None, use_reranker=True):
+        """Versione migliorata con recency score e reranker opzionale"""
+        
+        rag_config = self.state.get("rag_config", {})
+        top_k = rag_config.get("top_k", 15)
+        score_threshold = rag_config.get("score_threshold", 0.35)
+        
+        if vector_store is None:
+            vector_store = self._get_vector_store()
+        
+        # Multi-query retrieval
+        results = self._multi_query_retrieval(query, vector_store, top_k=top_k * 2)
+        
+        # Applica recency scoring
+        for doc in results:
+            doc["raw_score"] = doc["score"]
+            doc["score"] = self._score_document(doc, query, topic_filter)
+            doc["recency_score"] = self._calculate_recency_score(doc.get("fetched_at"))
+        
+        # Filtra per threshold
+        filtered = [d for d in results if d["score"] >= score_threshold]
+        
+        # Reranking con CrossEncoder se disponibile
+        if use_reranker and len(filtered) > 0:
+            try:
+                from tools.Reranker import Reranker
+                reranker = Reranker()
+                filtered = reranker.rerank(query, filtered, top_k=top_k)
+            except ImportError:
+                print("[RAG] Reranker not available, using base scoring")
+                filtered.sort(key=lambda x: x["score"], reverse=True)
+                filtered = filtered[:top_k]
+        else:
+            filtered.sort(key=lambda x: x["score"], reverse=True)
+            filtered = filtered[:top_k]
+        
+        # Aggiorna stato
+        tool_outputs = self.state.setdefault("tool_outputs", {})
+        tool_outputs["rag_results"] = filtered
+        tool_outputs["rag_doc_count"] = self._rag_count(vector_store)
+        
+        return filtered
