@@ -9,7 +9,7 @@ from agents.writer_agent import writer_agent
 from agents.fact_checker import fact_check_agent
 from agents.human_review import human_review_agent
 
-from tools.neo4j_tool import Neo4jManager
+from kg.neo4j_manager import Neo4jManager
 
 def create_blog_workflow(kg_manager: Neo4jManager):
     workflow = StateGraph(BlogState)

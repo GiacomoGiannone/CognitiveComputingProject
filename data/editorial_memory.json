@@ -1,0 +1,25 @@
+{
+  "domain": "sport",
+  "plans": [
+    {
+      "created_at": "2026-06-05T08:37:32.150751Z",
+      "topics": [
+        "Come allenare la propria squadra di calcio per vincere il campionato",
+        "Tecniche di tiro a segno: come migliorare la precisione con l'arco e la pistola",
+        "Il ruolo strategico del capitano in uno sport di squadra",
+        "Come prepararsi per una maratona: allenamento e dieta",
+        "L'importanza della tecnica nel tennis: analisi dei movimenti e degli errori comuni"
+      ]
+    },
+    {
+      "created_at": "2026-06-05T08:41:09.520598Z",
+      "topics": [
+        "Come creare un piano di allenamento personalizzato per lo sport di squadra",
+        "I benefici dell'interval training per migliorare la performance atletica",
+        "Analisi dei migliori strategisti del calcio: come costruire una squadra vincente",
+        "La preparazione mentale per gli atleti: tecniche e strumenti per superare lo stress",
+        "L'importanza della flessibilit\u00e0 nel calcio: allenamento e esercizi specifici"
+      ]
+    }
+  ]
+}

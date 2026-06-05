@@ -1,7 +1,7 @@
 # app.py (parte principale)
 import os
 from dotenv import load_dotenv
-from tools.neo4j_tool import Neo4jManager
+from kg.neo4j_manager import Neo4jManager
 from graph.workflow import create_blog_workflow
 
 load_dotenv()
@@ -32,7 +32,7 @@ def main():
     
     # Stato iniziale - NOTA: current_topic sarà impostato dal planner
     initial_state = {
-        "blog_domain": "Vela e nautica",
+        "blog_domain": "Sport",
         "kg_manager": kg,
         "current_topic": None,  # Sarà impostato dal planner
         "max_post_length": 1500,

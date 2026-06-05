@@ -98,7 +98,7 @@ RESEARCH SUMMARY:
 {research.get('research_summary', '')}
 
 REQUIREMENTS:
-1. Write approx 1000-1500 words
+1. Write approx 5000 words
 2. Use a friendly, expert tone
 3. Include practical advice or actionable tips
 4. Cite sources inline like [Source: Title]

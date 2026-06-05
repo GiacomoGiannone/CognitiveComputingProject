@@ -12,7 +12,7 @@ class HumanReviewAgent:
         print("📝 POST READY FOR REVIEW")
         print("="*60)
         print(f"\n📌 TITLE: {post.get('title', 'No title')}")
-        print(f"\n📖 CONTENT:\n{post.get('content', 'No content')[:1000]}...")
+        print(f"\n📖 CONTENT:\n{post.get('content', 'No content')}...")
         print(f"\n🔗 SOURCES: {len(post.get('sources', []))} sources")
         
         if fact_check_results:
