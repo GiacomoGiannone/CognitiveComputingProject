@@ -1,128 +1,210 @@
-# research_agent.py
+# agents/research_agent.py
 import ollama
 from tools.tavily_search import web_search
 import trafilatura
 from typing import List, Dict, Any
+import json
+import re
 
 class ResearchAgent:
     def __init__(self, llm_model: str = "llama3.1"):
-        self.llm = ollama.Chat(model=llm_model)
+        self.llm_model = llm_model
     
-    def search_and_extract(self, query: str, max_results: int = 5) -> List[Dict]:
+    def _call_llm(self, prompt: str) -> str:
+        """Chiamata corretta a Ollama"""
+        try:
+            response = ollama.chat(
+                model=self.llm_model,
+                messages=[{'role': 'user', 'content': prompt}]
+            )
+            return response['message']['content']
+        except Exception as e:
+            print(f"❌ LLM Error: {e}")
+            return ""
+    
+    def search_and_extract(self, query: str, max_results: int = 3) -> List[Dict]:
         """Cerca e pulisce i contenuti dalle pagine web"""
-        search_results = web_search(query, max_results)
+        print(f"  🔍 Searching: {query}")
+        
+        try:
+            search_results = web_search.invoke({"query": query, "max_results": max_results})
+        except Exception as e:
+            print(f"  ❌ Search error: {e}")
+            return []
         
         cleaned_docs = []
-        for result in search_results.get('results', []):
+        results = search_results.get('results', [])
+        print(f"  📊 Got {len(results)} raw results")
+        
+        for result in results[:max_results]:
             url = result.get('url')
-            content = trafilatura.extract(trafilatura.fetch_url(url))
+            title = result.get('title', 'No title')
+            print(f"  📄 Extracting: {title[:50]}...")
             
-            if content:
-                cleaned_docs.append({
-                    'url': url,
-                    'title': result.get('title'),
-                    'content': content[:5000],  # Limita lunghezza
-                    'score': result.get('score')
-                })
+            try:
+                downloaded = trafilatura.fetch_url(url)
+                if downloaded:
+                    content = trafilatura.extract(downloaded)
+                    if content and len(content) > 200:
+                        cleaned_docs.append({
+                            'url': url,
+                            'title': title,
+                            'content': content[:3000],  # Limita per performance
+                            'score': result.get('score', 0)
+                        })
+                        print(f"    ✅ Extracted {len(content)} chars")
+                    else:
+                        print(f"    ⚠️ Content too short or empty")
+                else:
+                    print(f"    ⚠️ Could not fetch URL")
+            except Exception as e:
+                print(f"    ❌ Extraction error: {e}")
         
         return cleaned_docs
     
-    def react_research(self, topic: str, max_iterations: int = 3) -> Dict:
+    def react_research(self, topic: str, max_iterations: int = 2) -> Dict:
         """
-        ReAct-style research agent
-        Thought -> Action -> Observation cycle
+        ReAct-style research agent semplificato
         """
-        context = {
-            'topic': topic,
-            'findings': [],
-            'queries_used': [],
-            'iteration': 0
-        }
+        print(f"\n🧠 Researching topic: '{topic}'")
         
-        prompt_template = """
-        You are a research agent using ReAct reasoning.
+        if not topic or topic == "None":
+            return {
+                'topic': topic,
+                'research_summary': f"No valid topic provided. Please specify a topic to research.",
+                'findings': [],
+                'sources': [],
+                'num_sources': 0,
+                'queries_used': [],
+                'error': True
+            }
         
-        Topic: {topic}
+        # Genera query di ricerca specifiche
+        query_prompt = f"""
+        Generate 2 specific Google search queries to find information about: "{topic}"
         
-        Previous findings: {findings}
+        Return ONLY a JSON array of strings.
+        Example: ["query 1", "query 2"]
         
-        Thought: Consider what information you need and what you already know.
-        Action: Decide what search query to execute next.
-        
-        Respond in format:
-        THOUGHT: [your reasoning]
-        ACTION: [search query]
+        Make queries specific and likely to find practical information.
         """
         
-        for i in range(max_iterations):
-            # Genera prossima azione
-            response = self.llm.invoke(
-                prompt_template.format(
-                    topic=topic,
-                    findings=context['findings']
-                )
-            )
+        response = self._call_llm(query_prompt)
+        
+        # Estrai query
+        try:
+            match = re.search(r'\[.*?\]', response, re.DOTALL)
+            if match:
+                queries = json.loads(match.group())
+            else:
+                queries = [topic, f"{topic} guide how to"]
+        except:
+            queries = [topic, f"{topic} tutorial"]
+        
+        print(f"📝 Search queries: {queries}")
+        
+        # Esegui ricerche
+        all_documents = []
+        findings_list = []
+        
+        for query in queries[:max_iterations]:
+            documents = self.search_and_extract(query, max_results=3)
             
-            # Parse response (semplificato)
-            if "ACTION:" in response.content:
-                query = response.content.split("ACTION:")[1].strip()
-                context['queries_used'].append(query)
-                
-                # Esegui ricerca
-                results = self.search_and_extract(query)
+            if documents:
+                all_documents.extend(documents)
                 
                 # Observation
                 obs_prompt = f"""
-                Search results for "{query}":
-                {results}
+                For topic "{topic}", I searched for "{query}" and found {len(documents)} documents.
                 
-                Observation: Summarize key findings and what's still missing.
+                Based on these results, what are the key points I should know about {topic}?
+                Respond with 2-3 bullet points.
                 """
-                obs_response = self.llm.invoke(obs_prompt)
                 
-                context['findings'].append({
-                    'iteration': i,
+                observation = self._call_llm(obs_prompt)
+                
+                findings_list.append({
                     'query': query,
-                    'observation': obs_response.content,
-                    'documents': results
+                    'observation': observation,
+                    'num_docs': len(documents)
                 })
-                
-                context['iteration'] = i + 1
+        
+        # Rimuovi duplicati
+        unique_docs = {}
+        for doc in all_documents:
+            if doc['url'] not in unique_docs:
+                unique_docs[doc['url']] = doc
+        all_documents = list(unique_docs.values())
         
         # Sintesi finale
-        synthesis_prompt = f"""
-        Based on all research findings for topic "{topic}":
-        
-        {context['findings']}
-        
-        Provide a comprehensive research summary with:
-        1. Key facts discovered
-        2. Gaps in information
-        3. Recommended sources to cite
-        
-        Format as structured research report.
-        """
-        
-        synthesis = self.llm.invoke(synthesis_prompt)
+        if all_documents:
+            # Prepara riassunto fonti
+            sources_text = "\n".join([
+                f"Source: {doc['title']}\nURL: {doc['url']}\nExcerpt: {doc['content'][:500]}...\n---"
+                for doc in all_documents[:3]
+            ])
+            
+            synthesis_prompt = f"""
+            Topic: {topic}
+            
+            Research findings from {len(all_documents)} sources:
+            
+            {sources_text}
+            
+            Provide a comprehensive research summary (300-500 words) for writing a blog post.
+            Include:
+            1. Key facts and main points
+            2. Practical tips or advice (if any)
+            3. Important context or background
+            
+            Write in clear paragraphs.
+            """
+            
+            summary = self._call_llm(synthesis_prompt)
+        else:
+            summary = f"No reliable sources found for '{topic}'. This could be because:\n1. The topic is too specific\n2. Tavily API key is invalid\n3. No internet connection\n\nSuggestions: Try a broader topic or check your API configuration."
         
         return {
             'topic': topic,
-            'research_summary': synthesis.content,
-            'findings': context['findings'],
-            'sources': [doc for finding in context['findings'] 
-                       for doc in finding.get('documents', [])]
+            'research_summary': summary,
+            'findings': findings_list,
+            'sources': all_documents,
+            'num_sources': len(all_documents),
+            'queries_used': queries,
+            'error': False
         }
 
 
-# Versione base per integrazione
 def research_agent(state):
     """Research agent con ReAct per workflow"""
+    print("\n" + "="*50)
+    print("🔍 RESEARCH AGENT STARTING")
+    print("="*50)
+    
+    # Prende il topic dallo state
     topic = state.get('current_topic')
     
-    if not topic:
-        return {"research_results": "No topic specified"}
+    print(f"📚 Current topic from state: '{topic}'")
+    
+    if not topic or topic == "None":
+        print("❌ ERROR: No valid topic found in state!")
+        print("Available state keys:", state.keys())
+        return {
+            "research_results": {
+                "error": True,
+                "topic": None,
+                "research_summary": "No topic specified. The planner agent did not set a current_topic.",
+                "sources": [],
+                "num_sources": 0
+            }
+        }
     
     researcher = ResearchAgent()
     results = researcher.react_research(topic)
+    
+    print(f"\n✅ Research complete: {results['num_sources']} sources found")
+    if results['num_sources'] == 0:
+        print("⚠️ WARNING: No sources found! Check Tavily API key.")
+    print("="*50)
     
     return {"research_results": results}

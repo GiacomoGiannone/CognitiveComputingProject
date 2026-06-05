@@ -1,28 +1,40 @@
 from typing import TypedDict, List, Dict, Any
 
 
-class BlogState(TypedDict):
+class BlogState(TypedDict, total=False):
 
+    # Core inputs
     blog_domain: str
+    current_topic: str
+    all_topics: List[str]
+    editorial_plan: str
 
-    topic: str
+    # Research + RAG
+    search_results: List[Dict[str, Any]]
+    retrieved_docs: List[Dict[str, Any]]
+    research_results: Dict[str, Any]
 
-    editorial_plan: list
+    # KG context
+    kg_manager: Any
+    kg_context: Dict[str, Any]
 
-    search_results: list
+    # Writing + fact check
+    draft_post: Dict[str, Any]
+    extracted_claims: List[str]
+    verified_claims: List[Dict[str, Any]]
+    fact_check_passed: bool
+    fact_check_results: Dict[str, Any]
 
-    retrieved_docs: list
-
-    kg_context: dict
-
-    extracted_claims: list
-
-    verified_claims: list
-
-    draft_post: str
-
+    # Human review + control flow
     review_action: str
+    modification_feedback: str
+    final_post: Dict[str, Any]
+    requires_regeneration: bool
+    requires_research: bool
+    iteration: int
+    max_iterations: int
+    max_post_length: int
 
-    thoughts: list[str]
-
+    # Optional debug/trace
+    thoughts: List[str]
     next_agent: str
