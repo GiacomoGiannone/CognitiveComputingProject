@@ -1,52 +1,27 @@
+import os
+
 import google.genai as genai
 
 from dotenv import load_dotenv
 import ollama
 
-from kg.KG import KG
-from graph.graph import graph
+from kg.neo4j_manager import Neo4jManager
 
-def main():
-	load_dotenv()
-	
-	#Inizializza il Knowledge Graph
-	kg = KG()
-	reset_kg = input("Vuoi resettare il KG? (y/n): ").strip().lower()
-	if reset_kg == "y":
-		kg.reset() #Pulisce il grafo all'inizio di ogni esecuzione, per testare da zero
+load_dotenv()
 
-	#Inizializza il modello (sostituisci con il tuo modello preferito)
-	model = ollama.Client()
-	model_name = "llama3.1"
+neo4j_uri = os.getenv("NEO4J_URI")
+neo4j_user = os.getenv("NEO4J_USERNAME")
+neo4j_password = os.getenv("NEO4J_PASSWORD")
 
-	use_suggestion = input("Vuoi un suggerimento di argomento? (y/n): ").strip().lower()
-	if use_suggestion == "y":
-		planner_mode = "suggest"
-		prompt = "Suggerisci un topic per un blog di sport."
-	else:
-		planner_mode = "choose"
-		prompt = input("Inserisci il prompt per il modello: ")
+if not neo4j_uri:
+    raise ValueError("NEO4J_URI is missing. Set it to something like bolt://localhost:7687")
 
-	initial_state = {
-		"user_input": prompt,
-		"recent_topics": [],
-		"chosen_topic": None,
-		"suggested_topic": None,
-		"planner_mode": planner_mode,
-		"verified_info": None,
-		"reasoning_trace": [],
-		"tool_outputs": {},
-		"created_content": None,
-		"content_feedback": None,
-		"content_feedback_detail": "",
-		"manual_facts": "",
-		"kg": kg,
-		"model": model,
-		"model_name": model_name
-	}
+kg = Neo4jManager(
+    uri=neo4j_uri,
+    user=neo4j_user,
+    password=neo4j_password
+)
 
-	result = graph.invoke(initial_state)
-
-if __name__ == "__main__":
-	main()
-
+#proviamo neo4j
+result = kg.query("MATCH (n) RETURN n LIMIT 5")
+print(result)

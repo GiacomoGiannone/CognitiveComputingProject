@@ -1,133 +1,73 @@
-**PARTE 1** Stabilire cosa fare
-
-Il progetto prevede di creare un blog sportivo che utilizza la AI agentica come supporto alla generazione di contenuti.
-L'agente dovrà essere in grado di:
-    1. Verificare l'accuratezza delle informazioni raccolte da fonti esterne.
-    2. Selezionare fra le risorse su internet quelle più affidabili e pertinenti.
-    3. Presentare un post di cui fare review (human in the loop) prima della pubblicazione.
-    4. Consigliare i topic di possibili posts.
-    5. Mantenere memoria dei post precedenti e dei suggerimenti.
-    6. L'agente pianifica una sequenza di post e giustifica le sue scelte. 
-
-Bisognera' usare un knowlege graph per mantenere memoria del blog. 
-
-L'ambito sara' quello del calcio europeo. 
-
-**PARTE 2** Architettura del progetto
-
-USER -> planner agent -> research agent -> RAG retrieval -> KG query -> Writer agent ->  USER (review) -> KG update
-------------------------------------------------------------------------
-Lo User decide il topic
-
-Il planner agent ha memoria dei post, legge il KG, genera un piano di N post giustificando le sue scelte e torna
-in output un piano di post da scrivere.
-
-Il research agent funziona in ReAct style. Ha accesso a tools di ricerca su internet e accesso al KG. In output torna fatti verificati.
-
-Il write agent prende i fatti verificati e scrive un draft del post. In output torna un draft del post di cui bisogna fare review.
-
-Lo human in the loop fa review del post e da feedback. Se il post va bene, allora si aggiorna il KG con le nuove informazioni. Se il post non va bene, allora si torna al writer agent con i feedback per migliorare il post.
-
-Se il post va bene, allora si aggiorna il KG con le nuove informazioni. Se il post non va bene, allora si torna al writer agent con i feedback per migliorare il post.
-------------------------------------------------------------------------
-Come pensa il research agent?
-    Thought:
-    Need recent information about Inter tactical changes.
-
-    Action:
-    KG_query("Inter recent topics")
-
-    Observation:
-    ["Inter defense", "Champions League", "injuries"]
-
-    Thought:
-    Avoid repeating recent content. Search for tactical analysis.
-
-    Action:
-    Search("Inter tactical analysis recent matches")
-
-    Observation:
-    [article1, article2]
-
-    Thought:
-    Need statistical evidence.
-
-    Action:
-    Stats_tool("Inter last 5 matches possession xG")
-
-    Observation:
-    [xG data]
-
-    Thought:
-    Need consistency with previous blog posts.
-
-    Action:
-    RAG_retrieval("Inter previous analyses")
-
-    Observation:
-    [retrieved chunks]
-
-**PARTE 3** Strumenti da usare
-
-search: tavily, brave, google search
-RAG: chromaDB, FAISS
-KG: fatto in casa, con nodi e relazioni, salvato in JSON
-
-**PARTE 4** Come strutturare il KG
-
-Topic          → "winch maintenance", "sailing knots"
-Entity         → "Harken", "Bowline knot", "Mediterranean Sea"
-Event          → "Genoa Boat Show 2026", "Palermo Sailing Week"
-Resource       → "article: doi:10.1234/sailing", "video: YouTube-xyz"
-Post           → "blog_post_2026_03_15" (ciò che hai già pubblicato)
-Tag            → "beginner", "safety", "gear review"
-
-ESEMPIO DI RELAZIONE:
-    (Post)-[:COVERS]->(Topic),
-    (Topic)-[:RELATED_TO]->(Topic),
-    (Post)-[:HAS_TAG]->(Tag)
-
-
-ESEMPIO DI GRAFO LANGGRAPH
-
 START
+
  ↓
-planner_node
+
+Planner
+
  ↓
-research_node
+
+Research
+
  ↓
-writer_node
+
+Fact Check
+
  ↓
-review_node
+
+Writer
+
  ↓
-kg_update_node
+
+Human Review
+
+ ├─ reject → Research
+ ├─ regenerate → Writer
+ └─ approve → Update KG
+
  ↓
+
 END
 
 
-SCALETTA DEL PROGETTO
-1. Implementazione del KG (classi, metodi per aggiungere nodi/relazioni) (FATTO)
-2. Implementazione dei tool di utilizzo del KG (query, estrazione di informazioni) (FATTO)
-3. Creazione di una classe Stato per dare memoria agli agenti (FATTO)
-4. Aggiungere i campi tool_outputs, kg_summary, plan e citations alla classe Stato (IN CORSO) (e' richiesto nella sezione MCP)
-5. implementare il planner agent che legge il KG e pianifica i post (FATTO)
-6. implementare il research agent che funziona in ReAct style (IN CORSO)
-7. Quando viene aggiunto un nuovo post, bisogna controllare tra i topic esistenti. Se non viene trovato un topic simile,
-allora se ne crea uno nuovo.
 
-TODO importante:
-quando viene approvato un post, viene sempre sovrascritto come post_1. Cancella sempre i post vecchi attualmente
+STEP 1: Planner
+Il planner deve generare un piano editoriale basandosi su quello che gia' e' stato trattato.
+Quindi ci serve almeno popolare il grafo con alcuni argomenti e relazioni, in modo che si possa testare il planner.
+Una volta che il grafo e' popolato, il planner deve essere in grado di generare un piano editoriale 
+che includa argomenti che non sono ancora stati trattati.
 
-aggiungere anche una modalita' suggerimento in cui il nodo planner suggerisce un topic all'utente
+Prima di popolare il grafo, dobbiamo definire la struttura del KG, definendo le 
+entita' minime come Post, Topic, Source, Claim e relazioni. 
 
-(FATTI ENTRAMBI)
+Poi dobbiamo mettere le entita' funzionanti nel grafo.
 
-Attualmente il feedback non funziona benissimo. Inserendo yes a aggiungi informazioni non ci viene dato l'articolo finale.
+Poi dobbiamo fare in modo che il planner usi il KG effettivamente per generare un piano. 
 
-Inoltre, mi sembra che il tool di aggiunta dei nodi non trovi bene i topic corrispondenti. Tende sempre a mettere un topic diverso.
+Per quanto riguarda la struttura del KG, adottiamo la seguente:
 
-1. nei metadata dei documenti bisogna aggiungere un hash del documento.
-2. usare un retriever migliore, come CrossEncoder di sentence transformers. Definire una classe reranker
-3. fare multiquery retrieval, quindi generare diverse query per lo stesso argomento
-4. invece di passare i documenti al summarizer, potremmo estrarli prima e poi passarli al summarizer, in modo da avere un output più pulito
-5. usare un recency score invece della data grezza
+ENTITA':
+- Post: rappresenta un articolo o un post scritto, con attributi come titolo, contenuto, data di pubblicazione, autore, ecc.
+- Topic: rappresenta un argomento o un tema, con attributi come nome, descrizione, ecc.
+- Source: rappresenta una fonte di informazione, con attributi come nome, url, affidabilita', ecc.
+RELAZIONI:
+- Post -[COVERS]-> Topic: indica che un post tratta un certo argomento.
+- Post -[USES]-> Source: indica che un post utilizza una certa fonte.
+- (Post)-[:CITES]->(Source): il post cita una fonte
+
+STEP 2: Research
+Il research agent deve essere in grado di cercare informazioni su internet, utilizzando il tool tavily search.
+Il tool e' implementato e funziona.
+Il research agent deve funzionare in stile ReAct, requisito molto importante.
+Una volta che estrae i documenti da internet, deve pulirli con trafilatura e restituire solo il testo pulito.
+
+STEP 3: Writer 
+Il writer deve essere in grado di scrivere un articolo basandosi sui documenti restituiti dal research agent.
+
+STEP 4: Fact Check
+Il fact check deve essere in grado di verificare le informazioni contenute nell'articolo scritto dal writer.
+Deve suggerire cambiamenti se lo ritiene necessario. Praticamente deve prendere delle parti di articolo e ricercare informazioni su quelle.
+
+STEP 5: Human Review
+Il human review e' l'ultimo step del workflow, e deve essere in grado di accettare o rifiutare l'articolo scritto dal writer.
+Se l'articolo viene rifiutato, deve tornare al research agent, altrimenti se viene accettato, deve aggiornare il grafo con le nuove informazioni.
+Deve inoltre essere possibile restituirlo al writer con delle modifiche suggerite dall'umano, in modo che possa rigenerare l'articolo con le modifiche suggerite.
