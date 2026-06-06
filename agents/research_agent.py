@@ -8,6 +8,13 @@ from typing import List, Dict, Any
 import json
 import re
 
+#TODO:
+#Il research agent dovrebbe espandere la propria query di ricerca usando il Knowledge Graph.
+#Come fare? Supponiamo il topic iniziale sia "manutenzione vela".
+#A questo punto facciamo una query per vedere se abbiamo gia' trattato questo argomento o argomenti correlati.
+#Ora facciamo retrieval sia dal nostro RAG store che dal web, usando query espanse con i topic correlati trovati nel KG.
+#praticamente la query del KG ci fa da "supporto" per generare query migliori su argomenti gia' trattati.
+
 class ResearchAgent:
     def __init__(self, llm_model: str = "llama3.1", kg_manager=None):
         self.llm_model = llm_model
