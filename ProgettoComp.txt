@@ -54,7 +54,7 @@ RELAZIONI:
 - Post -[USES]-> Source: indica che un post utilizza una certa fonte.
 - (Post)-[:CITES]->(Source): il post cita una fonte
 
-(DA FARE) aggiungere la stampa del pensiero esplicito del planner agent che, dopo aver letto gli argomenti gia' trattatti,
+aggiungere la stampa del pensiero esplicito del planner agent che, dopo aver letto gli argomenti gia' trattatti,
 spiega come mai ha scelto i successivi articoli da trattare. ATTENZIONE, chiaramente deve prendere solamente il primo topic di quelli
 non trattati. Si avra' qualcosa tipo trattati = [calcio, basket, tennis], non trattati = [vela, ciclismo, atletica]
 e quindi sceglie vela e si ha trattati = [calcio, basket, tennis, vela], non trattati = [ciclismo, atletica].
@@ -69,7 +69,8 @@ Il tool e' implementato e funziona.
 Il research agent deve funzionare in stile ReAct, requisito molto importante.
 Una volta che estrae i documenti da internet, deve pulirli con trafilatura e restituire solo il testo pulito.
 
-(DA FARE) aggiungere il sistema di RAG? non stiamo usando il DB chroma attualmente.
+(FATTO) aggiungere il sistema di RAG? non stiamo usando il DB chroma attualmente.
+(IMPORTANTE, DA FARE) Usare il Knowledge Graph per espandere la query di ricerca, come richiesto dalle specifiche.
 
 STEP 3: Writer 
 Il writer deve essere in grado di scrivere un articolo basandosi sui documenti restituiti dal research agent.
@@ -84,4 +85,4 @@ Se l'articolo viene rifiutato, deve tornare al research agent, altrimenti se vie
 Deve inoltre essere possibile restituirlo al writer con delle modifiche suggerite dall'umano, in modo che possa rigenerare l'articolo con le modifiche suggerite.
 
 STEP 6: Finetuning di un modello
-Dobbiamo scegliere un modello e fare finetuning su di esso. Bisogna ancora scegliere il dominio. (DA FARE)
+(DA FARE)Dobbiamo scegliere un modello e fare finetuning su di esso. Bisogna ancora scegliere il dominio.
