@@ -2,23 +2,40 @@
   "domain": "sport",
   "plans": [
     {
-      "created_at": "2026-06-05T08:37:32.150751Z",
+      "created_at": "2026-06-06T06:48:06.001631Z",
+      "finished": false,
+      "last_topic_index": 1,
       "topics": [
-        "Come allenare la propria squadra di calcio per vincere il campionato",
-        "Tecniche di tiro a segno: come migliorare la precisione con l'arco e la pistola",
-        "Il ruolo strategico del capitano in uno sport di squadra",
-        "Come prepararsi per una maratona: allenamento e dieta",
-        "L'importanza della tecnica nel tennis: analisi dei movimenti e degli errori comuni"
-      ]
-    },
-    {
-      "created_at": "2026-06-05T08:41:09.520598Z",
-      "topics": [
-        "Come creare un piano di allenamento personalizzato per lo sport di squadra",
-        "I benefici dell'interval training per migliorare la performance atletica",
-        "Analisi dei migliori strategisti del calcio: come costruire una squadra vincente",
-        "La preparazione mentale per gli atleti: tecniche e strumenti per superare lo stress",
-        "L'importanza della flessibilit\u00e0 nel calcio: allenamento e esercizi specifici"
+        {
+          "index": 0,
+          "topic": "Istruzioni complete per montare e assemblare una barca da diporto",
+          "finished": true,
+          "finished_at": "2026-06-06T06:51:12.141754Z"
+        },
+        {
+          "index": 1,
+          "topic": "Come allenarsi a pattinare sul ghiaccio senza cadere: consigli per principianti",
+          "finished": true,
+          "finished_at": "2026-06-06T06:54:03.748701Z"
+        },
+        {
+          "index": 2,
+          "topic": "Tecniche avanzate di tiro con l'arco: come migliorare la precisione e la potenza",
+          "finished": false,
+          "finished_at": null
+        },
+        {
+          "index": 3,
+          "topic": "La gestione dell'ansia prima di un grande evento sportivo: strategie di allenamento mentale",
+          "finished": false,
+          "finished_at": null
+        },
+        {
+          "index": 4,
+          "topic": "Come scegliere gli stivali da trekking giusti per le condizioni climatiche estreme",
+          "finished": false,
+          "finished_at": null
+        }
       ]
     }
   ]

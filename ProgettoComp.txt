@@ -60,15 +60,20 @@ ad ogni nuova esecuzione. Inoltre, bisogna dirgli esplicitamente che deve genera
 un argomento specifico o a caso. E' un blog sportivo, quindi deve generare idee su argomenti sportivi. (FATTO)
 
 (DA FARE) aggiungere la stampa del pensiero esplicito del planner agent che, dopo aver letto gli argomenti gia' trattatti,
-spiega come mai ha scelto i successivi articoli da trattate. ATTENZIONE, chiaramente deve prendere solamente il primo topic di quelli
+spiega come mai ha scelto i successivi articoli da trattare. ATTENZIONE, chiaramente deve prendere solamente il primo topic di quelli
 non trattati. Si avra' qualcosa tipo trattati = [calcio, basket, tennis], non trattati = [vela, ciclismo, atletica]
-e quindi sceglie vela e si ha trattati = [calcio, basket, tennis, vela], non trattati = [ciclismo, atletica]
+e quindi sceglie vela e si ha trattati = [calcio, basket, tennis, vela], non trattati = [ciclismo, atletica].
+Quando la lista di non trattati si e' finita, crea nuovamente 5 argomenti, li aggiunge alla lista di non trattati e cosi' via.
+
+(DA FARE) usare langsmith per debug del grafo. 
 
 STEP 2: Research
 Il research agent deve essere in grado di cercare informazioni su internet, utilizzando il tool tavily search.
 Il tool e' implementato e funziona.
 Il research agent deve funzionare in stile ReAct, requisito molto importante.
 Una volta che estrae i documenti da internet, deve pulirli con trafilatura e restituire solo il testo pulito.
+
+(DA FARE) aggiungere il sistema di RAG? non stiamo usando il DB chroma attualmente.
 
 STEP 3: Writer 
 Il writer deve essere in grado di scrivere un articolo basandosi sui documenti restituiti dal research agent.
@@ -81,3 +86,6 @@ STEP 5: Human Review
 Il human review e' l'ultimo step del workflow, e deve essere in grado di accettare o rifiutare l'articolo scritto dal writer.
 Se l'articolo viene rifiutato, deve tornare al research agent, altrimenti se viene accettato, deve aggiornare il grafo con le nuove informazioni.
 Deve inoltre essere possibile restituirlo al writer con delle modifiche suggerite dall'umano, in modo che possa rigenerare l'articolo con le modifiche suggerite.
+
+STEP 6: Finetuning di un modello
+Dobbiamo scegliere un modello e fare finetuning su di esso. Bisogna ancora scegliere il dominio. (DA FARE)

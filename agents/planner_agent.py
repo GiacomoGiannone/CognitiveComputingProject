@@ -11,7 +11,7 @@ def planner_agent(state):
     print("📋 PLANNER AGENT STARTING")
     print("="*50)
     
-    # Recupera il dominio (forza sport per questo progetto)
+    # Recupera il dominio
     domain = state.get('blog_domain', 'Sport')
     domain_label = "Sport" if "sport" not in str(domain).lower() else domain
 
@@ -32,150 +32,227 @@ def planner_agent(state):
     def save_memory(path: str, data: dict) -> None:
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=True)
+            json.dump(data, f, indent=2, ensure_ascii=False)
 
     memory = load_memory(memory_path)
-    previous_topics = set()
+    
+    # Normalizza tutti i piani
     for plan in memory.get("plans", []):
-        for t in plan.get("topics", []):
-            if isinstance(t, str) and t.strip():
-                previous_topics.add(t.strip())
+        topics_normalized = []
+        for idx, item in enumerate(plan.get("topics", [])):
+            if isinstance(item, str):
+                topics_normalized.append({
+                    "index": idx,
+                    "topic": item,
+                    "finished": False,
+                    "finished_at": None
+                })
+            elif isinstance(item, dict):
+                topics_normalized.append({
+                    "index": item.get("index", idx),
+                    "topic": item.get("topic") or item.get("name", ""),
+                    "finished": item.get("finished", False),
+                    "finished_at": item.get("finished_at")
+                })
+        plan["topics"] = topics_normalized
+        plan.setdefault("finished", False)
+        plan.setdefault("last_topic_index", -1)
     
-    # Recupera topic già coperti dal KG
-    covered_topics = []
-    kg = state.get('kg_manager')
-    if kg:
-        try:
-            result = kg.query("MATCH (p:Post)-[:COVERS]->(t:Topic) RETURN DISTINCT t.name as topic")
-            covered_topics = [r['topic'] for r in result]
-            print(f"📚 Topics already covered: {covered_topics}")
-        except Exception as e:
-            print(f"⚠️ Could not query KG: {e}")
+    # CERCA IL PIANO ATTIVO (primo piano con finished=False)
+    active_plan = None
+    active_plan_idx = -1
     
-    # Prompt per generare topic sportivi
-    prompt = f"""
-    Domain: {domain_label}
-    This is a SPORTS blog. Generate ONLY sports-related topics.
-    
-    {'Already covered topics: ' + ', '.join(covered_topics) if covered_topics else 'No topics covered yet.'}
-    {'Previously suggested topics: ' + ', '.join(sorted(previous_topics)) if previous_topics else 'No previous planner memory.'}
-    
-    Generate a list of 5 blog post topics for this domain.
-    Avoid topics already covered.
-    Avoid topics already suggested in previous runs.
-    
-    Return ONLY a JSON array in this exact format:
-    ["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5"]
-    
-    Make topics specific and concrete, not too broad.
-    """
-    
-    # Chiamata Ollama corretta
-    response = ollama.chat(
-        model="llama3.1",
-        messages=[{'role': 'user', 'content': prompt}]
-    )
-    
-    # Parsing dei topic
-    try:
-        # Cerca array JSON nella risposta
-        content = response['message']['content']
-        # Trova la prima lista JSON
-        import re
-        match = re.search(r'\[.*?\]', content, re.DOTALL)
-        if match:
-            topics = json.loads(match.group())
-        else:
-            topics = [
-                "Piani di allenamento per runner principianti",
-                "Nutrizione sportiva per sport di endurance",
-                "Prevenzione infortuni nel calcio dilettantistico",
-                "Tecnologia e analytics nel basket moderno",
-                "Recupero muscolare e sonno per atleti"
-            ]
-    except:
-        # Fallback
-        topics = [
-            "Piani di allenamento per runner principianti",
-            "Nutrizione sportiva per sport di endurance",
-            "Prevenzione infortuni nel calcio dilettantistico",
-            "Tecnologia e analytics nel basket moderno",
-            "Recupero muscolare e sonno per atleti"
-        ]
-
-    # Filtra duplicati e topic già coperti/memorizzati
-    avoid_topics = set(covered_topics) | previous_topics
-    cleaned = []
-    seen = set()
-    for t in topics:
-        if not isinstance(t, str):
-            continue
-        topic = t.strip()
-        if not topic:
-            continue
-        if topic in avoid_topics:
-            continue
-        key = topic.lower()
-        if key in seen:
-            continue
-        seen.add(key)
-        cleaned.append(topic)
-
-    fallback_pool = [
-        "Allenamento funzionale per sport di squadra",
-        "Strategie mentali per la performance sportiva",
-        "Come scegliere l'attrezzatura per il ciclismo",
-        "Tecniche di recupero per triatleti",
-        "Analisi tattica nel calcio moderno",
-        "Riscaldamento efficace per sport ad alta intensita",
-        "Prevenzione infortuni per runners",
-        "Guida alla forza per atleti di volley",
-        "Nutrizione pre-gara per sport di resistenza",
-        "Tecnologia wearable nello sport"
-    ]
-
-    for t in fallback_pool:
-        if len(cleaned) >= 5:
+    for idx, plan in enumerate(memory.get("plans", [])):
+        if not plan.get("finished", False):
+            active_plan = plan
+            active_plan_idx = idx
+            print(f"📋 Found active plan (index {idx})")
             break
-        if t in avoid_topics:
-            continue
-        key = t.lower()
-        if key in seen:
-            continue
-        seen.add(key)
-        cleaned.append(t)
-
-    topics = cleaned[:5]
     
-    # Seleziona il primo topic come current_topic
-    current_topic = topics[0] if topics else "Allenamento funzionale per sport di squadra"
+    # Se non c'è piano attivo, creane uno nuovo
+    if active_plan is None:
+        print("📋 No active plan found, creating new plan...")
+        
+        # Recupera topic già coperti dal KG e dai piani completati
+        covered_topics = []
+        kg = state.get('kg_manager')
+        if kg:
+            try:
+                result = kg.query("MATCH (p:Post)-[:COVERS]->(t:Topic) RETURN DISTINCT t.name as topic")
+                covered_topics = [r['topic'] for r in result]
+                print(f"📚 Topics already covered in KG: {covered_topics}")
+            except Exception as e:
+                print(f"⚠️ Could not query KG: {e}")
+        
+        # Raccolgi tutti i topic già usati
+        previous_topics = set(covered_topics)
+        for plan in memory.get("plans", []):
+            for topic_item in plan.get("topics", []):
+                if topic_item.get("topic"):
+                    previous_topics.add(topic_item.get("topic"))
+        
+        avoid_list = previous_topics
+        avoid_text = ", ".join(sorted(avoid_list)) if avoid_list else "None"
+        
+        prompt = f"""
+        Domain: {domain_label}
+        This is a SPORTS blog. Generate ONLY sports-related topics.
+        
+        Topics to AVOID (already covered or previously suggested):
+        {avoid_text}
+        
+        Generate a list of 5 NEW blog post topics for this domain.
+        Do NOT repeat any of the topics above.
+        
+        Return ONLY a JSON array in this exact format:
+        ["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5"]
+        
+        Make topics specific and concrete, not too broad.
+        """
+        
+        response = ollama.chat(
+            model="llama3.1",
+            messages=[{'role': 'user', 'content': prompt}]
+        )
+        
+        # Parsing dei topic
+        try:
+            import re
+            content = response['message']['content']
+            match = re.search(r'\[.*?\]', content, re.DOTALL)
+            if match:
+                topics = json.loads(match.group())
+            else:
+                topics = [
+                    "Allenamento pliometrico per sport di squadra",
+                    "Gestione del carico per atleti amatoriali",
+                    "Tecniche di respirazione per il nuoto",
+                    "Preparazione mentale per competizioni",
+                    "Recupero attivo dopo l'allenamento"
+                ]
+        except:
+            topics = [
+                "Allenamento pliometrico per sport di squadra",
+                "Gestione del carico per atleti amatoriali",
+                "Tecniche di respirazione per il nuoto",
+                "Preparazione mentale per competizioni",
+                "Recupero attivo dopo l'allenamento"
+            ]
+        
+        # Filtra duplicati
+        cleaned = []
+        seen = set()
+        for t in topics:
+            if not isinstance(t, str):
+                continue
+            topic = t.strip()
+            if not topic or topic in avoid_list:
+                continue
+            key = topic.lower()
+            if key in seen:
+                continue
+            seen.add(key)
+            cleaned.append(topic)
+        
+        topics = cleaned[:5]
+        
+        if len(topics) < 5:
+            fallback = [
+                "Mobilità articolare per sportivi",
+                "Periodizzazione dell'allenamento",
+                "Idratazione durante l'attività sportiva",
+                "Tecnica di corsa per principianti",
+                "Stretching dinamico pre-allenamento"
+            ]
+            for fb in fallback:
+                if len(topics) >= 5:
+                    break
+                if fb not in avoid_list and fb.lower() not in seen:
+                    topics.append(fb)
+                    seen.add(fb.lower())
+        
+        # Crea nuovo piano
+        active_plan = {
+            "created_at": datetime.utcnow().isoformat() + "Z",
+            "finished": False,
+            "last_topic_index": -1,
+            "topics": [
+                {
+                    "index": idx,
+                    "topic": topic_name,
+                    "finished": False,
+                    "finished_at": None,
+                }
+                for idx, topic_name in enumerate(topics)
+            ]
+        }
+        memory.setdefault("plans", []).append(active_plan)
+        save_memory(memory_path, memory)
+        
+        print("\n✨ Generated NEW editorial plan:")
+        for idx, topic_name in enumerate(topics, 1):
+            print(f"  {idx}. {topic_name}")
+    
+    # ORA DETERMINA IL PROSSIMO TOPIC DAL PIANO ATTIVO
+    # ALGORITMO: prendi l'indice dell'ultimo topic e incrementa di 1
+    
+    last_index = active_plan.get("last_topic_index", -1)
+    next_index = last_index + 1
+    
+    topics_list = active_plan.get("topics", [])
+    
+    # Verifica se il piano è completo
+    if next_index >= len(topics_list):
+        # Piano completato! Marca come finished e cerca un nuovo piano
+        print(f"\n✅ Plan completed! Marking as finished.")
+        active_plan["finished"] = True
+        active_plan["finished_at"] = datetime.utcnow().isoformat() + "Z"
+        save_memory(memory_path, memory)
+        
+        # Ricorsione per trovare/prossimo piano
+        return planner_agent(state)
+    
+    # Prendi il topic all'indice next_index
+    next_topic_item = topics_list[next_index]
+    current_topic = next_topic_item.get("topic")
+    
+    # Calcola i topic rimanenti
+    remaining_topics = [
+        t.get("topic") for t in topics_list[next_index:]
+        if t.get("topic") and not t.get("finished", False)
+    ]
+    
+    # Stampa stato
+    print(f"\n📋 Active Plan Status:")
+    print(f"   Plan created: {active_plan.get('created_at', 'Unknown')}")
+    print(f"   Last completed index: {last_index}")
+    print(f"   Next index: {next_index}")
+    print(f"   Total topics: {len(topics_list)}")
+    
+    print(f"\n🗂️ Topics in plan:")
+    for idx, topic_item in enumerate(topics_list):
+        if idx < next_index:
+            status = "✅ DONE"
+        elif idx == next_index:
+            status = "🎯 CURRENT"
+        else:
+            status = "⏳ PENDING"
+        print(f"   {status}: {topic_item.get('topic')}")
     
     editorial_plan = f"""
     📅 EDITORIAL PLAN for {domain}:
     
-    1. {topics[0]} (next post)
-    2. {topics[1]}
-    3. {topics[2]}
-    4. {topics[3]}
-    5. {topics[4]}
+    Current post ({next_index + 1}/{len(topics_list)}): {current_topic}
+    Remaining topics: {', '.join(remaining_topics[1:5]) if len(remaining_topics) > 1 else 'None'}
     
-    Justification: Topics are ordered from most practical/urgent to more advanced.
+    Justification: Sequential order based on plan creation.
     """
     
-    # Salva piano in memoria persistente
-    memory["domain"] = "sport"
-    memory.setdefault("plans", []).append({
-        "created_at": datetime.utcnow().isoformat() + "Z",
-        "topics": topics
-    })
-    save_memory(memory_path, memory)
-
-    print(f"✅ Selected topic for research: {current_topic}")
-    print(f"💾 Saved editorial plan to: {memory_path}")
+    print(f"\n✅ Selected topic for research: {current_topic}")
     print("="*50)
     
     return {
         "editorial_plan": editorial_plan,
-        "current_topic": current_topic,  # IMPORTANTE: imposta il topic corrente
-        "all_topics": topics
+        "current_topic": current_topic,
+        "all_topics": remaining_topics
     }
