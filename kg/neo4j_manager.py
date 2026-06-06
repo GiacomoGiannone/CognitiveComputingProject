@@ -135,3 +135,72 @@ class Neo4jManager:
     
     def close(self):
         self.driver.close()
+
+    def expand_query_with_kg(self, query: str, max_related: int = 3) -> str:
+        """
+        Espande una query usando il Knowledge Graph
+        Trova topic correlati per arricchire la ricerca
+        """
+        try:
+            # Estrai topic dalla query (semplificato)
+            # In produzione, usare NER o keyword extraction
+            
+            # Cerca topic correlati nel KG
+            result = self.query("""
+                MATCH (t:Topic)
+                WHERE t.name CONTAINS $query OR $query CONTAINS t.name
+                MATCH (t)-[:RELATED_TO]->(related:Topic)
+                RETURN DISTINCT related.name as related_topic
+                LIMIT $limit
+            """, {"query": query.lower(), "limit": max_related})
+            
+            if result:
+                related = [r['related_topic'] for r in result]
+                expanded = f"{query}\n\nRelated topics to consider: {', '.join(related)}"
+                print(f"🔍 KG Expanded query: '{query}' -> Added related: {related}")
+                return expanded
+            
+        except Exception as e:
+            print(f"⚠️ KG query expansion failed: {e}")
+        
+        return query
+    
+    def get_context_for_topic(self, topic: str) -> str:
+        """
+        Recupera contesto dal KG per un topic
+        Usato per arricchire la generazione dei post
+        """
+        try:
+            # Trova topic correlati
+            related = self.query("""
+                MATCH (t:Topic {name: $topic})-[:RELATED_TO*1..2]-(related:Topic)
+                WHERE t.name <> related.name
+                RETURN DISTINCT related.name as topic
+                LIMIT 5
+            """, {"topic": topic})
+            
+            related_topics = [r['topic'] for r in related] if related else []
+            
+            # Trova post precedenti sul topic
+            previous_posts = self.query("""
+                MATCH (p:Post)-[:COVERS]->(t:Topic {name: $topic})
+                RETURN p.title as title, p.created_at as date
+                ORDER BY p.created_at DESC
+                LIMIT 3
+            """, {"topic": topic})
+            
+            context = f"""
+            Knowledge Graph Context for: {topic}
+            
+            Related topics: {', '.join(related_topics) if related_topics else 'None'}
+            
+            Previous posts on this topic:
+            """
+            for post in previous_posts:
+                context += f"\n  - {post['title']} ({post['date']})"
+            
+            return context
+            
+        except Exception as e:
+            print(f"⚠️ Could not get KG context: {e}")
+            return f"No additional context found for {topic}"

@@ -1,14 +1,63 @@
-def get_related_topics(topic):
+# tools/kg_tool.py
+from kg.neo4j_manager import Neo4jManager
+from typing import List, Dict, Any
 
-    query = """
-    MATCH (t:Topic {name:$topic})
-    -[:RELATED_TO]->
-    (other:Topic)
-
-    RETURN other.name as topic
+class KGQueryTool:
     """
+    Knowledge Graph tool per querying e updating structured knowledge
+    """
+    def __init__(self, kg_manager: Neo4jManager):
+        self.kg = kg_manager
+    
+    def query_topics(self, topic_filter: str = None) -> List[Dict]:
+        """Query topics dal KG"""
+        if topic_filter:
+            cypher = """
+                MATCH (t:Topic)
+                WHERE t.name CONTAINS $filter
+                RETURN t.name as name, t.description as description
+                LIMIT 20
+            """
+            params = {"filter": topic_filter}
+        else:
+            cypher = """
+                MATCH (t:Topic)
+                RETURN t.name as name, t.description as description
+                LIMIT 50
+            """
+            params = {}
+        
+        return self.kg.query(cypher, params)
+    
+    def get_related(self, topic: str, depth: int = 1) -> List[str]:
+        """Trova topic correlati"""
+        cypher = f"""
+            MATCH (t:Topic {{name: $topic}})-[:RELATED_TO*1..{depth}]-(related:Topic)
+            WHERE t.name <> related.name
+            RETURN DISTINCT related.name as topic
+            LIMIT 10
+        """
+        results = self.kg.query(cypher, {"topic": topic})
+        return [r['topic'] for r in results]
+    
+    def get_post_history(self, limit: int = 10) -> List[Dict]:
+        """Recupera storico post per evitare ridondanza"""
+        cypher = """
+            MATCH (p:Post)-[:COVERS]->(t:Topic)
+            RETURN p.title as title, p.created_at as date, collect(t.name) as topics
+            ORDER BY p.created_at DESC
+            LIMIT $limit
+        """
+        return self.kg.query(cypher, {"limit": limit})
+    
+    def update_post(self, title: str, content: str, topics: List[str], sources: List[str]) -> str:
+        """Aggiorna KG con nuovo post (wrapper per add_post)"""
+        return self.kg.add_post(title, content, topics, sources)
 
-    return kg.query(
-        query,
-        {"topic": topic}
-    )
+kg_tool_instance = None
+
+def get_kg_tool(kg_manager):
+    global kg_tool_instance
+    if kg_tool_instance is None:
+        kg_tool_instance = KGQueryTool(kg_manager)
+    return kg_tool_instance

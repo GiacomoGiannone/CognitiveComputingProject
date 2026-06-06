@@ -54,16 +54,12 @@ RELAZIONI:
 - Post -[USES]-> Source: indica che un post utilizza una certa fonte.
 - (Post)-[:CITES]->(Source): il post cita una fonte
 
-Attualmente il planner non scrive un piano editoriale. Dobbiamo fare in modo che generi
-5 idee per articoli e che le scriva in memoria persistente, in modo che possa tenere traccia
-ad ogni nuova esecuzione. Inoltre, bisogna dirgli esplicitamente che deve generare idee sullo SPORT, non su
-un argomento specifico o a caso. E' un blog sportivo, quindi deve generare idee su argomenti sportivi. (FATTO)
-
 (DA FARE) aggiungere la stampa del pensiero esplicito del planner agent che, dopo aver letto gli argomenti gia' trattatti,
 spiega come mai ha scelto i successivi articoli da trattare. ATTENZIONE, chiaramente deve prendere solamente il primo topic di quelli
 non trattati. Si avra' qualcosa tipo trattati = [calcio, basket, tennis], non trattati = [vela, ciclismo, atletica]
 e quindi sceglie vela e si ha trattati = [calcio, basket, tennis, vela], non trattati = [ciclismo, atletica].
 Quando la lista di non trattati si e' finita, crea nuovamente 5 argomenti, li aggiunge alla lista di non trattati e cosi' via.
+(FATTO)
 
 (DA FARE) usare langsmith per debug del grafo. 
 

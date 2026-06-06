@@ -15,8 +15,8 @@ class HumanReviewAgent:
         
         # Mostra solo anteprima se troppo lungo
         content = post.get('content', 'No content')
-        preview = content[:800] + "..." if len(content) > 800 else content
-        print(f"\n📖 CONTENT PREVIEW:\n{preview}")
+        #preview = content[:800] + "..." if len(content) > 800 else content
+        print(f"\n📖 CONTENT PREVIEW:\n{content}")
         
         sources = post.get('sources', [])
         print(f"\n🔗 SOURCES: {len(sources)} sources")
