@@ -3,17 +3,11 @@ import ollama
 from tools.tavily_search import web_search
 from tools.rag_retriever import rag_retrieve, rag_add_documents
 from tools.kg_tool import get_kg_tool
+from tools.entity_extractor import extract_topics_from_title
 import trafilatura
 from typing import List, Dict, Any
 import json
 import re
-
-#TODO:
-#Il research agent dovrebbe espandere la propria query di ricerca usando il Knowledge Graph.
-#Come fare? Supponiamo il topic iniziale sia "manutenzione vela".
-#A questo punto facciamo una query per vedere se abbiamo gia' trattato questo argomento o argomenti correlati.
-#Ora facciamo retrieval sia dal nostro RAG store che dal web, usando query espanse con i topic correlati trovati nel KG.
-#praticamente la query del KG ci fa da "supporto" per generare query migliori su argomenti gia' trattati.
 
 class ResearchAgent:
     def __init__(self, llm_model: str = "llama3.1", kg_manager=None):
@@ -33,18 +27,56 @@ class ResearchAgent:
             print(f"❌ LLM Error: {e}")
             return ""
     
-    def _expand_query_with_kg(self, topic: str) -> str:
-        """Espande la query usando il Knowledge Graph"""
+    def _expand_query_with_kg(self, topic: str, extracted_topics: list = None, blog_domain: str = None) -> str:
+        """
+        Espande la query usando il Knowledge Graph.
+        
+        MIGLIORAMENTO ARCHITETTURALE:
+        Usa i topic generici già estratti (una sola volta dal planner),
+        anziché re-estrarre dal topic specifico ogni volta.
+        
+        Args:
+            topic: Il topic specifico
+            extracted_topics: Topic generici già estratti dal planner (PASSATI DALLO STATE)
+            blog_domain: Il dominio del blog (opzionale, fallback se no extracted_topics)
+        
+        Returns:
+            Query espansa con topic correlati dal KG
+        """
         if not self.kg_tool:
             return topic
         
         try:
-            # Trova topic correlati dal KG
-            related = self.kg_tool.get_related(topic, depth=1)
-            if related:
-                expanded = f"{topic} related topics: {', '.join(related[:3])}"
-                print(f"🔍 KG Query Expansion: '{topic}' -> related: {related[:3]}")
+            # 🔧 Se i topic sono già nel state, usali direttamente
+            if extracted_topics:
+                print(f"\n🔍 KG Query Expansion (usando topic dallo state)")
+                print(f"   Original specific topic: {topic[:60]}...")
+                print(f"   Using pre-extracted topics: {extracted_topics}")
+            else:
+                # Fallback: estrai se non disponibili
+                print(f"\n🔍 KG Query Expansion (estrazione fallback)")
+                print(f"   Original specific topic: {topic[:60]}...")
+                extracted_topics = extract_topics_from_title(topic, blog_domain)
+                print(f"   Extracted generic topics: {extracted_topics}")
+            
+            # STEP 2: Usa i topic estratti per cercare correlati nel KG
+            all_related = []
+            for generic_topic in extracted_topics:
+                try:
+                    related = self.kg_tool.get_related(generic_topic, depth=1)
+                    if related:
+                        all_related.extend(related)
+                        print(f"   - {generic_topic} -> {related[:2]}")
+                except Exception as e:
+                    print(f"   ⚠️ Could not find relations for '{generic_topic}': {e}")
+            
+            # STEP 3: Rimuovi duplicati e crea query espansa
+            unique_related = list(set(all_related))[:3]
+            if unique_related:
+                expanded = f"{topic}\nRelated topics to consider: {', '.join(unique_related)}"
+                print(f"   ✅ KG Expansion complete: +{len(unique_related)} related topics")
                 return expanded
+        
         except Exception as e:
             print(f"⚠️ KG expansion error: {e}")
         
@@ -86,21 +118,40 @@ class ResearchAgent:
         
         return cleaned_docs
     
-    def react_research(self, topic: str, max_iterations: int = 2) -> Dict:
+    def react_research(self, topic: str, extracted_topics: list = None, blog_domain: str = None, max_iterations: int = 2) -> Dict:
         """
         ReAct-style research agent con K-RAG
         Thought -> Action -> Observation cycle
+        
+        🔧 MIGLIORAMENTO: Usa topic generici già estratti dal planner (state)
         """
         print(f"\n🧠 ReAct Research with K-RAG for: '{topic}'")
         
-        # STEP 1: Expand query with KG
+        # STEP 1: Expand query with KG using pre-extracted topics
         kg_context = None
         if self.kg_tool:
-            kg_context = self.kg_tool.get_related(topic)
-            print(f"📊 KG Context: Related topics = {kg_context[:3] if kg_context else 'None'}")
+            # 🔧 Usa i topic generici già estratti (passati dal state)
+            expanded_query = self._expand_query_with_kg(topic, extracted_topics, blog_domain)
+            
+            # Usa i topic estratti per il contesto KG
+            topics_for_kg = extracted_topics if extracted_topics else []
+            kg_context = []
+            for gt in topics_for_kg:
+                try:
+                    related = self.kg_tool.get_related(gt, depth=1)
+                    if related:
+                        kg_context.extend(related)
+                except:
+                    pass
+            
+            if kg_context:
+                kg_context = list(set(kg_context))[:5]  # Rimuovi duplicati
+                print(f"📊 KG Context: Related topics = {kg_context[:3]}")
+            else:
+                print(f"📊 KG Context: No related topics found")
         
         # STEP 2: Query RAG vector store first
-        print("\n📚 STEP 1: Querying RAG vector store...")
+        print("\n📚 Querying RAG vector store...")
         rag_docs = []
         try:
             rag_docs = rag_retrieve(topic, k=3, kg_context=", ".join(kg_context[:3]) if kg_context else None)
@@ -219,8 +270,12 @@ def research_agent(state):
     
     topic = state.get('current_topic')
     kg_manager = state.get('kg_manager')
+    blog_domain = state.get('blog_domain')  
+    extracted_topics = state.get('extracted_graph_topics')  
     
     print(f"📚 Current topic: '{topic}'")
+    print(f"📌 Blog domain: '{blog_domain}'")
+    print(f"🔧 Pre-extracted topics: {extracted_topics}") 
     
     if not topic or topic == "None":
         return {
@@ -234,7 +289,7 @@ def research_agent(state):
         }
     
     researcher = ResearchAgent(kg_manager=kg_manager)
-    results = researcher.react_research(topic)
+    results = researcher.react_research(topic, extracted_topics=extracted_topics, blog_domain=blog_domain)  
     
     print(f"\n✅ Research complete:")
     print(f"   - Web sources: {results['num_sources']}")

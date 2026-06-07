@@ -8,6 +8,7 @@ class BlogState(TypedDict, total=False):
     current_topic: str
     all_topics: List[str]
     editorial_plan: str
+    extracted_graph_topics: List[str]
 
     # Research + RAG
     search_results: List[Dict[str, Any]]

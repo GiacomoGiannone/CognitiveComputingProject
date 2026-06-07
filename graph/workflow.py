@@ -48,7 +48,7 @@ def create_blog_workflow(kg_manager: Neo4jManager):
         
         if action == 'approved':
             return END
-        elif action in ['modify_requested', 'suggestions_given']:
+        elif action == 'modify_requested':
             return "writer"
         elif action == 'rejected' or state.get('requires_research'):
             if state.get('iteration', 0) < state.get('max_iterations', 3):

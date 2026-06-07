@@ -1,0 +1,18 @@
+# Environment
+python-dotenv
+
+# Neo4j
+neo4j
+
+# LangChain core ecosystem
+langchain
+langchain-community
+
+# Ollama integration (nuovo stile, evita deprecated)
+langchain-ollama
+
+# Vector store / embeddings
+faiss-cpu
+
+# HTTP / web search (Tavily)
+tavily-python

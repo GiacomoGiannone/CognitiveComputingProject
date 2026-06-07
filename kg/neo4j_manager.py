@@ -133,6 +133,18 @@ class Neo4jManager:
             result = session.run(cypher, params or {})
             return [record.data() for record in result]
     
+    def get_recently_covered_topics(self, days: int = 1) -> List[str]:
+        """ Restituisce i topic coperti SOLO negli ultimi N giorni (cooldown)"""
+        with self.driver.session() as session:
+            result = session.run(
+                f"""
+                MATCH (p:Post)-[:COVERS]->(t:Topic)
+                WHERE p.created_at >= datetime() - duration('P{days}D')
+                RETURN DISTINCT t.name as topic
+                """
+            )
+            return [record["topic"] for record in result]
+    
     def close(self):
         self.driver.close()
 

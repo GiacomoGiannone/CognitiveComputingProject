@@ -1,5 +1,9 @@
 # agents/human_review.py
+import json
+import re
+import ollama
 from typing import Dict
+from tools.entity_extractor import extract_topics_from_title
 
 class HumanReviewAgent:
     def __init__(self):
@@ -30,11 +34,10 @@ class HumanReviewAgent:
         print("\n" + "="*60)
         print("Options:")
         print("1. APPROVE - Publish as is")
-        print("2. MODIFY - Edit and regenerate")
+        print("2. MODIFY - Provide feedback or corrections to regenerate")
         print("3. REJECT - Discard and research again")
-        print("4. SUGGEST - Provide specific changes")
         
-        choice = input("\nYour choice (1/2/3/4): ").strip()
+        choice = input("\nYour choice (1/2/3): ").strip()
         
         if choice == "1":
             return {"action": "approve", "feedback": None}
@@ -43,9 +46,6 @@ class HumanReviewAgent:
             return {"action": "modify", "feedback": modifications}
         elif choice == "3":
             return {"action": "reject", "feedback": None}
-        elif choice == "4":
-            suggestions = input("Enter specific suggestions: ")
-            return {"action": "suggest", "feedback": suggestions}
         else:
             return {"action": "reject", "feedback": "Invalid choice"}
     
@@ -89,7 +89,17 @@ def human_review_agent(state):
         if kg:
             try:
                 if hasattr(kg, 'add_post'):
-                    topics = [state.get('current_topic', 'General')]
+                    post_title = post.get('title', 'Untitled')
+                    extracted_topics = state.get('extracted_graph_topics', [])  
+                    
+                    print("\n" + "="*60)
+                    print("🔍 Saving to Knowledge Graph")
+                    print("="*60)
+                    print(f"📌 Post title: {post_title}")
+                    print(f"   - Using pre-extracted topics: {extracted_topics}")  
+                    print("="*60)
+                    
+                    # Raccogliere source URLs
                     source_urls = []
                     for s in post.get('sources', []):
                         if isinstance(s, dict) and s.get('url'):
@@ -97,13 +107,73 @@ def human_review_agent(state):
                         elif isinstance(s, str):
                             source_urls.append(s)
                     
+                    # Salva in Neo4j con il titolo lungo e i topic generici estratti (dal state)
                     post_id = kg.add_post(
-                        title=post.get('title', 'Untitled'),
+                        title=post_title,  # Titolo specifico e lungo
                         content=post.get('content', ''),
-                        topics=topics,
+                        topics=extracted_topics,  # Topic generici dal state, non ri-estratti
                         sources=source_urls
                     )
-                    print(f"\n✅ Post saved to Knowledge Graph (ID: {post_id})")
+                    print(f"\n✅ Post saved to Knowledge Graph")
+                    
+                    # CREAZIONE RELAZIONI TRA TOPIC
+                    print(f"\n🔗 Creating Topic Relations...")
+                    try:
+                        # Recupera i topic storici già nel grafo
+                        all_existing_topics = kg.get_covered_topics()
+                        print(f"   📊 Looking for related topics")
+                        
+                        if all_existing_topics and extracted_topics:
+                            # Chiedi all'LLM di valutare relazioni semantiche
+                            new_topics_str = ", ".join(extracted_topics)
+                            existing_str = ", ".join(all_existing_topics[-10:])  # Ultimi 10 per ridurre token
+                            
+                            relation_prompt = f"""
+                            Analizza le relazioni semantiche tra questi topic:
+                            
+                            NEW topics appena salvati: [{new_topics_str}]
+                            EXISTING topics in KG: [{existing_str}]
+                            
+                            Identifica le relazioni logiche/semantiche (padre-figlio, affinità tematica, correlazione).
+                            Ritorna SOLO un array JSON di coppie ["topic1", "topic2"] senza ulteriore testo.
+                            
+                            Esempio:
+                            [["Ansia", "Psicologia sportiva"], ["Vela", "Vento"]]
+                            
+                            Se non trovi relazioni, ritorna: []
+                            """
+                            
+                            response = ollama.chat(
+                                model="llama3.1",
+                                messages=[{'role': 'user', 'content': relation_prompt}]
+                            )
+                            
+                            # Parse JSON delle relazioni con fallback
+                            relations = []
+                            try:
+                                content = response['message']['content']
+                                # Estrai blocco JSON
+                                json_match = re.search(r'\[.*\]', content, re.DOTALL)
+                                if json_match:
+                                    relations = json.loads(json_match.group())
+                            except (json.JSONDecodeError, AttributeError) as e:
+                                print(f"   ⚠️ Could not parse relations JSON: {e}")
+                            
+                            # Crea le relazioni nel grafo
+                            if relations:
+                                print(f"   ✅ Found {len(relations)} relations to create:")
+                                for topic1, topic2 in relations:
+                                    try:
+                                        kg.add_topic_relation(topic1, topic2, "RELATED_TO")
+                                        print(f"      🔗 {topic1} <-> {topic2}")
+                                    except Exception as rel_err:
+                                        print(f"      ⚠️ Could not create relation: {rel_err}")
+                            else:
+                                print(f"   ℹ️ No semantic relations found")
+                        else:
+                            print(f"   ℹ️ Not enough topics to establish relations")
+                    except Exception as rel_err:
+                        print(f"   ⚠️ Relation creation error: {rel_err}")
             except Exception as e:
                 print(f"\n⚠️ Could not save to KG: {e}")
         
@@ -134,13 +204,6 @@ def human_review_agent(state):
             'review_action': 'rejected',
             'requires_research': True,
             'iteration': state.get('iteration', 0) + 1
-        }
-    
-    elif review_result['action'] == 'suggest':
-        return {
-            'review_action': 'suggestions_given',
-            'suggestions': review_result['feedback'],
-            'requires_regeneration': True
         }
     
     else:

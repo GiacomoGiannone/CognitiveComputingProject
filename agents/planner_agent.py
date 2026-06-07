@@ -3,6 +3,7 @@ import ollama
 import json
 import os
 from datetime import datetime
+from tools.entity_extractor import extract_topics_from_title
 
 def planner_agent(state):
     """Planner agent - genera piano editoriale e seleziona il primo topic"""
@@ -73,14 +74,13 @@ def planner_agent(state):
     if active_plan is None:
         print("📋 No active plan found, creating new plan...")
         
-        # Recupera topic già coperti dal KG e dai piani completati
+        #  Recupera SOLO i topic coperti di recente (nell'ultimo giorno)
         covered_topics = []
         kg = state.get('kg_manager')
         if kg:
             try:
-                result = kg.query("MATCH (p:Post)-[:COVERS]->(t:Topic) RETURN DISTINCT t.name as topic")
-                covered_topics = [r['topic'] for r in result]
-                print(f"📚 Topics already covered in KG: {covered_topics}")
+                covered_topics = kg.get_recently_covered_topics(days=1)
+                print(f"⏰ Topics covered in LAST 24 HOURS (cooldown): {covered_topics}")
             except Exception as e:
                 print(f"⚠️ Could not query KG: {e}")
         
@@ -251,8 +251,15 @@ def planner_agent(state):
     print(f"\n✅ Selected topic for research: {current_topic}")
     print("="*50)
     
+    # Estrai i topic generici dal titolo specifico
+    print(f"\n🔧 Extracting generic topics for Knowledge Graph...")
+    domain = state.get('blog_domain')
+    extracted_topics = extract_topics_from_title(current_topic, domain)
+    #print(f"✅ Generic topics extracted: {extracted_topics}")
+    
     return {
         "editorial_plan": editorial_plan,
         "current_topic": current_topic,
-        "all_topics": remaining_topics
+        "all_topics": remaining_topics,
+        "extracted_graph_topics": extracted_topics 
     }

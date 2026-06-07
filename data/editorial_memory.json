@@ -3,8 +3,8 @@
   "plans": [
     {
       "created_at": "2026-06-06T06:48:06.001631Z",
-      "finished": false,
-      "last_topic_index": 2,
+      "finished": true,
+      "last_topic_index": 4,
       "topics": [
         {
           "index": 0,
@@ -27,12 +27,50 @@
         {
           "index": 3,
           "topic": "La gestione dell'ansia prima di un grande evento sportivo: strategie di allenamento mentale",
+          "finished": true,
+          "finished_at": "2026-06-07T10:42:09.612172Z"
+        },
+        {
+          "index": 4,
+          "topic": "Come scegliere gli stivali da trekking giusti per le condizioni climatiche estreme",
+          "finished": true,
+          "finished_at": "2026-06-07T11:10:02.184615Z"
+        }
+      ],
+      "finished_at": "2026-06-07T11:10:02.184615Z"
+    },
+    {
+      "created_at": "2026-06-07T11:22:12.567511Z",
+      "finished": false,
+      "last_topic_index": 2,
+      "topics": [
+        {
+          "index": 0,
+          "topic": "10 Esercizi di Stretamento per Migliorare la Mobilità Articolare in Ciclismo",
+          "finished": true,
+          "finished_at": "2026-06-07T11:35:06.231607Z"
+        },
+        {
+          "index": 1,
+          "topic": "La Strategia di Allenamento per il Marathon: come prepararsi ad una gara da 42 km",
+          "finished": true,
+          "finished_at": "2026-06-07T16:00:40.538042Z"
+        },
+        {
+          "index": 2,
+          "topic": "Come Scegliere gli Scarponi da Sci Alpinismo Adatti alle Tue Esigenze",
+          "finished": true,
+          "finished_at": "2026-06-07T17:16:25.926399Z"
+        },
+        {
+          "index": 3,
+          "topic": "L'Importanza della Flessibilità nella Ginnastica Artistica e Come Migliorarla",
           "finished": false,
           "finished_at": null
         },
         {
           "index": 4,
-          "topic": "Come scegliere gli stivali da trekking giusti per le condizioni climatiche estreme",
+          "topic": "La Preparazione Fisica per il Nuoto: come sviluppare la forza e l'endurance",
           "finished": false,
           "finished_at": null
         }

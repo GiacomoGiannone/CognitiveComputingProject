@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 from kg.neo4j_manager import Neo4jManager
 from graph.workflow import create_blog_workflow
 
-load_dotenv()
+load_dotenv(override=True)
 
 def main():
     # Verifica Tavily
@@ -35,6 +35,7 @@ def main():
         "blog_domain": "Sport",
         "kg_manager": kg,
         "current_topic": None,  # Sarà impostato dal planner
+        "extracted_graph_topics": [],  # Topic generici estratti dal planner
         "max_post_length": 1500,
         "iteration": 0,
         "max_iterations": 2,
@@ -57,7 +58,8 @@ def main():
         if output:
             print(f"Step output: {list(output.keys())}")
         
-        if output and output.get('final_post'):
+        # Controlla se 'final_post' è presente in uno dei nodi eseguiti nello step
+        if output and any('final_post' in node_data for node_data in output.values() if isinstance(node_data, dict)):
             print("\n✅ Post published!")
             break
     
