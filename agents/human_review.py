@@ -107,14 +107,20 @@ def human_review_agent(state):
                         elif isinstance(s, str):
                             source_urls.append(s)
                     
+                    # Recupera i claims estratti dal fact checker
+                    extracted_claims = fact_check.get('extracted_claims', [])
+                    
                     # Salva in Neo4j con il titolo lungo e i topic generici estratti (dal state)
                     post_id = kg.add_post(
                         title=post_title,  # Titolo specifico e lungo
                         content=post.get('content', ''),
                         topics=extracted_topics,  # Topic generici dal state, non ri-estratti
-                        sources=source_urls
+                        sources=source_urls,
+                        claims=extracted_claims
                     )
                     print(f"\n✅ Post saved to Knowledge Graph")
+                    if extracted_claims:
+                        print(f"   📋 {len(extracted_claims)} claims saved as Claim nodes")
                     
                     # CREAZIONE RELAZIONI TRA TOPIC
                     print(f"\n🔗 Creating Topic Relations...")

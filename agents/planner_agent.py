@@ -104,10 +104,18 @@ def planner_agent(state):
         Generate a list of 5 NEW blog post topics for this domain.
         Do NOT repeat any of the topics above.
         
-        Return ONLY a JSON array in this exact format:
-        ["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5"]
+        Return ONLY a JSON object with exactly two keys:
+        - "topics": a list of 5 strings representing the new topics.
+        - "justification": a string explaining the editorial rationale behind these topics.
+        
+        Example format:
+        {{
+            "topics": ["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5"],
+            "justification": "This plan covers key fundamentals and advanced topics to capture beginner to expert readers sequentially."
+        }}
         
         Make topics specific and concrete, not too broad.
+        Return ONLY the JSON object, nothing else.
         """
         
         response = ollama.chat(
@@ -115,13 +123,18 @@ def planner_agent(state):
             messages=[{'role': 'user', 'content': prompt}]
         )
         
-        # Parsing dei topic
+        # Parsing dei topic e della giustificazione
+        justification = "Sequential order based on plan creation."
         try:
             import re
             content = response['message']['content']
-            match = re.search(r'\[.*?\]', content, re.DOTALL)
+            match = re.search(r'\{.*?\}', content, re.DOTALL)
+            if not match:
+                match = re.search(r'\{.*\}', content, re.DOTALL)
             if match:
-                topics = json.loads(match.group())
+                data = json.loads(match.group())
+                topics = data.get("topics", [])
+                justification = data.get("justification", "Sequential order based on plan creation.")
             else:
                 topics = [
                     "Allenamento pliometrico per sport di squadra",
@@ -130,7 +143,8 @@ def planner_agent(state):
                     "Preparazione mentale per competizioni",
                     "Recupero attivo dopo l'allenamento"
                 ]
-        except:
+        except Exception as e:
+            print(f"⚠️ Error parsing plan JSON: {e}")
             topics = [
                 "Allenamento pliometrico per sport di squadra",
                 "Gestione del carico per atleti amatoriali",
@@ -176,6 +190,7 @@ def planner_agent(state):
             "created_at": datetime.utcnow().isoformat() + "Z",
             "finished": False,
             "last_topic_index": -1,
+            "justification": justification,
             "topics": [
                 {
                     "index": idx,
@@ -192,6 +207,7 @@ def planner_agent(state):
         print("\n✨ Generated NEW editorial plan:")
         for idx, topic_name in enumerate(topics, 1):
             print(f"  {idx}. {topic_name}")
+        print(f"  Justification: {justification}")
     
     # ORA DETERMINA IL PROSSIMO TOPIC DAL PIANO ATTIVO
     # ALGORITMO: prendi l'indice dell'ultimo topic e incrementa di 1
@@ -225,6 +241,7 @@ def planner_agent(state):
     # Stampa stato
     print(f"\n📋 Active Plan Status:")
     print(f"   Plan created: {active_plan.get('created_at', 'Unknown')}")
+    print(f"   Justification: {active_plan.get('justification', 'Sequential order based on plan creation.')}")
     print(f"   Last completed index: {last_index}")
     print(f"   Next index: {next_index}")
     print(f"   Total topics: {len(topics_list)}")
@@ -245,7 +262,7 @@ def planner_agent(state):
     Current post ({next_index + 1}/{len(topics_list)}): {current_topic}
     Remaining topics: {', '.join(remaining_topics[1:5]) if len(remaining_topics) > 1 else 'None'}
     
-    Justification: Sequential order based on plan creation.
+    Justification: {active_plan.get('justification', 'Sequential order based on plan creation.')}
     """
     
     print(f"\n✅ Selected topic for research: {current_topic}")

@@ -177,7 +177,8 @@ class FactCheckAgent:
             'claims_checked': len(claims),
             'issues_found': issues_found,
             'suggestions': suggestions,
-            'detailed_results': verified_claims
+            'detailed_results': verified_claims,
+            'extracted_claims': claims
         }
 
 

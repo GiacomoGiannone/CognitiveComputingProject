@@ -31,8 +31,8 @@ class Neo4jManager:
             )
             return result.single().data()
     
-    def add_post(self, title: str, content: str, topics: List[str], sources: List[str]) -> str:
-        """Aggiunge un post e lo connette a topics e sources"""
+    def add_post(self, title: str, content: str, topics: List[str], sources: List[str], claims: List[str] = None) -> str:
+        """Aggiunge un post e lo connette a topics, sources e claims"""
         post_id = str(uuid.uuid4())
         
         with self.driver.session() as session:
@@ -73,6 +73,18 @@ class Neo4jManager:
                     """,
                     post_id=post_id, url=source_url
                 )
+            
+            # Connetti a claims
+            if claims:
+                for claim_text in claims:
+                    session.run(
+                        """
+                        MATCH (p:Post {id: $post_id})
+                        MERGE (c:Claim {text: $claim_text})
+                        CREATE (p)-[:MAKES_CLAIM]->(c)
+                        """,
+                        post_id=post_id, claim_text=claim_text
+                    )
         
         return post_id
     

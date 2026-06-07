@@ -10,11 +10,11 @@ Research
 
  ↓
 
-Fact Check
+Writer
 
  ↓
 
-Writer
+Fact Checker
 
  ↓
 
@@ -70,7 +70,7 @@ Il research agent deve funzionare in stile ReAct, requisito molto importante.
 Una volta che estrae i documenti da internet, deve pulirli con trafilatura e restituire solo il testo pulito.
 
 (FATTO) aggiungere il sistema di RAG? non stiamo usando il DB chroma attualmente.
-(IMPORTANTE, DA FARE) Usare il Knowledge Graph per espandere la query di ricerca, come richiesto dalle specifiche.
+(FATTO) Usare il Knowledge Graph per espandere la query di ricerca, come richiesto dalle specifiche.
 
 STEP 3: Writer 
 Il writer deve essere in grado di scrivere un articolo basandosi sui documenti restituiti dal research agent.

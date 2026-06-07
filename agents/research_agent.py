@@ -202,7 +202,7 @@ class ResearchAgent:
         
         # Web search
         for query in queries[:max_iterations]:
-            documents = self.search_and_extract(query, max_results=3)
+            documents = self.search_and_extract(query, max_results=5)
             if documents:
                 all_documents.extend(documents)
         
@@ -221,11 +221,61 @@ class ResearchAgent:
                 unique_docs[doc['url']] = doc
         all_documents = list(unique_docs.values())
         
+        # STEP 5.5: Quality and Interestingness Filter
+        filtered_documents = all_documents
+        if len(all_documents) > 3:
+            print(f"\n🏅 Quality Assessment: Evaluating {len(all_documents)} documents...")
+            
+            doc_list_text = "\n".join([
+                f"[{i+1}] Title: {doc['title']}\n    URL: {doc['url']}\n    Excerpt: {doc['content'][:300]}..."
+                for i, doc in enumerate(all_documents)
+            ])
+            
+            quality_prompt = f"""
+            You are a Senior Editor. Your task is to select the 3 best documents from the list below,
+            based on quality, interestingness, authority, clarity, and relevance to the topic.
+            
+            Topic: "{topic}"
+            
+            Available documents:
+            {doc_list_text}
+            
+            Return ONLY a JSON array containing the exact URLs of the 3 best documents.
+            Example: ["https://example.com/a", "https://example.com/b", "https://example.com/c"]
+            
+            Return ONLY the JSON array, nothing else.
+            """
+            
+            quality_response = self._call_llm(quality_prompt)
+            
+            try:
+                url_match = re.search(r'\[.*?\]', quality_response, re.DOTALL)
+                if url_match:
+                    selected_urls = json.loads(url_match.group())
+                    filtered_documents = [doc for doc in all_documents if doc['url'] in selected_urls]
+                    
+                    # Fallback se il filtraggio ha dato meno di 1 risultato
+                    if len(filtered_documents) < 1:
+                        print(f"   ⚠️ LLM selection matched 0 docs, falling back to first 3")
+                        filtered_documents = all_documents[:3]
+                    else:
+                        print(f"   ✅ Selected {len(filtered_documents)} high-quality sources:")
+                        for doc in filtered_documents:
+                            print(f"      📄 {doc['title'][:60]}")
+                else:
+                    print(f"   ⚠️ No JSON array found, falling back to first 3")
+                    filtered_documents = all_documents[:3]
+            except Exception as e:
+                print(f"   ⚠️ Quality filter parse error: {e}, falling back to first 3")
+                filtered_documents = all_documents[:3]
+        else:
+            print(f"\n🏅 Quality Assessment: {len(all_documents)} documents (≤3), keeping all")
+        
         # STEP 6: Synthesis with KG context
-        if all_documents:
+        if filtered_documents:
             sources_text = "\n".join([
                 f"Source: {doc['title']}\nURL: {doc['url']}\nExcerpt: {doc['content'][:500]}..."
-                for doc in all_documents[:3]
+                for doc in filtered_documents[:3]
             ])
             
             synthesis_prompt = f"""
@@ -233,7 +283,7 @@ class ResearchAgent:
             
             Knowledge Graph Context (related topics): {', '.join(kg_context[:3]) if kg_context else 'None'}
             
-            Research findings from {len(all_documents)} sources:
+            Research findings from {len(filtered_documents)} high-quality sources:
             
             {sources_text}
             
@@ -253,8 +303,8 @@ class ResearchAgent:
         return {
             'topic': topic,
             'research_summary': summary,
-            'sources': all_documents,
-            'num_sources': len(all_documents),
+            'sources': filtered_documents,
+            'num_sources': len(filtered_documents),
             'rag_sources_count': len(rag_docs),
             'queries_used': queries,
             'kg_context': kg_context,
