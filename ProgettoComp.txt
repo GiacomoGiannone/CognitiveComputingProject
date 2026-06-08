@@ -86,3 +86,18 @@ Deve inoltre essere possibile restituirlo al writer con delle modifiche suggerit
 
 STEP 6: Finetuning di un modello
 (DA FARE)Dobbiamo scegliere un modello e fare finetuning su di esso. Bisogna ancora scegliere il dominio.
+
+10 punti rimanenti:
+1. Secondo tool extra. Attualmente viene usato solo entity_extractor. Creare altri due tools, dentro la cartella tools,
+    come, ad esempio, 
+2. Selezione dinamica dei tool
+3. Giustificazione del tool usato
+4. Traccia esplicita del ragionamento ReAct
+5. Rag + KG context passati al writer (requisito: content grounded in retrieved documents + informed by KG)\
+6. citazioni nei post (ci sono gia'?)
+7. Langsmith
+8. verifica accuratezza informazioni (gia' fatto?)
+9. Aggiungere logging esplicito dello stato ad ogni step
+10. Manca un modulo di valutazione dei post generati.
+
+Per il punto 10, possiamo fare finetuning di un modello esistente per valutare la qualità degli articoli generati.
