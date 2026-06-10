@@ -119,26 +119,26 @@
     {
       "created_at": "2026-06-10T18:41:29.925055Z",
       "finished": false,
-      "last_topic_index": -1,
+      "last_topic_index": 2,
       "justification": "This selection covers specific topics that cater to the interests of both amateur and professional athletes, focusing on performance optimization, tactical skills, nutrition planning, and mental preparation. The chosen titles offer a mix of general interest and specialized knowledge, ensuring there's something for every reader in this sports blog.",
       "topics": [
         {
           "index": 0,
           "topic": "The Impact of Weather Conditions on Outdoor Sports Performance: Strategies for Adaptation",
-          "finished": false,
-          "finished_at": null
+          "finished": true,
+          "finished_at": "2026-06-10T18:55:28.698373Z"
         },
         {
           "index": 1,
           "topic": "How to Create a Personalized Warm-Up Routine for Optimal Athletic Performance",
-          "finished": false,
-          "finished_at": null
+          "finished": true,
+          "finished_at": "2026-06-10T22:05:13.313507Z"
         },
         {
           "index": 2,
           "topic": "Mastering the Art of Tactical Shooting in Biathlon: Techniques and Drills",
-          "finished": false,
-          "finished_at": null
+          "finished": true,
+          "finished_at": "2026-06-10T22:39:27.170512Z"
         },
         {
           "index": 3,

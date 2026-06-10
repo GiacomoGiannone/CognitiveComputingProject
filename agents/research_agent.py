@@ -63,10 +63,7 @@ research summary (300-500 words) that includes:
 3. How this topic relates to broader context
 4. Sources and references found
 
-Write the summary in clear paragraphs. Do NOT call any more tools when producing the final summary.
-
-IMPORTANT: Do NOT include any <think> tags or internal reasoning in your final summary. 
-Provide ONLY the clean research summary text."""
+Write the summary in clear paragraphs. Do NOT call any more tools when producing the final summary."""
 
 
 # ─── Helpers per formattare le Observation nel log ─────────────────────────────
@@ -194,25 +191,35 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
 
         messages.append(response)
 
-        # ── Estrai il testo dell'LLM (rimuovendo <think> tags) ──
         raw_content = response.content or ""
-        clean_content = re.sub(
-            r'<think>.*?</think>', '', raw_content, flags=re.DOTALL
-        ).strip()
 
-        # ── Controlla se l'LLM ha deciso di chiamare tool ──
+        # Tenta di estrarre il pensiero dai tag nativi <think> prima di pulire la stringa
+        think_match = re.search(r'<think>(.*?)</think>', raw_content, re.DOTALL)
+        if think_match:
+            thought_text = think_match.group(1).strip()
+        else:
+            thought_text = raw_content.strip()
+
+        # Pulisci il contenuto rimuovendo i tag per i controlli successivi (es. Final Answer)
+        clean_content = re.sub(r'<think>.*?</think>', '', raw_content, flags=re.DOTALL).strip()
+
+        # Controlla se l'LLM ha deciso di terminare la ricerca
         if not response.tool_calls:
-            # Nessun tool call → l'LLM ha finito, il testo è il summary finale
             research_summary = clean_content
             print(f"\n📝 Final Answer:\n{research_summary}")
             print(f"\n✅ ReAct loop completed early at iteration {iteration + 1}/{max_iterations} — LLM has enough information")
             break
 
-        # ── THOUGHT: mostra il ragionamento (se presente) ──
-        if clean_content:
-            print(f"\n💭 Thought: {clean_content}")
-        else:
-            print(f"\n💭 Thought: (reasoning internalized, proceeding to action)")
+        # Genera una giustificazione dinamica se Ollama ha azzerato il testo (Native Tool Calling constraint)
+        if not thought_text and response.tool_calls:
+            primary_tool = response.tool_calls[0]["name"]
+            tool_args = response.tool_calls[0]["args"]
+            # Estraiamo la query per rendere il thought altamente specifico e contestuale
+            query_param = tool_args.get("query") or tool_args.get("topic") or ""
+            thought_text = f"Analizzo lo stato della ricerca. Per approfondire il topic, decido di invocare lo strumento '{primary_tool}' con focus su: '{query_param}'."
+
+        # THOUGHT: Mostra a schermo il vero pensiero logico o la giustificazione d'uso del tool
+        print(f"\n💭 Thought: {thought_text}")
 
         # ── ACTION + OBSERVATION per ogni tool call ──
         for tc in response.tool_calls:
