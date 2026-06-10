@@ -1,332 +1,135 @@
-# agents/research_agent.py (modificato con K-RAG)
-import ollama
-from tools.tavily_search import web_search
-from tools.rag_retriever import rag_retrieve, rag_add_documents
-from tools.kg_tool import get_kg_tool
-from tools.entity_extractor import extract_topics_from_title
-import trafilatura
-from typing import List, Dict, Any
-import json
+# agents/research_agent.py
+"""
+Research Agent con approccio ReAct (Thought → Action → Observation).
+L'LLM (qwen3) decide autonomamente quali tool usare, con quali parametri
+e quante volte, tramite bind_tools di LangChain.
+"""
 import re
-
-class ResearchAgent:
-    def __init__(self, llm_model: str = "llama3.1", kg_manager=None):
-        self.llm_model = llm_model
-        self.kg_manager = kg_manager
-        self.kg_tool = get_kg_tool(kg_manager) if kg_manager else None
-    
-    def _call_llm(self, prompt: str) -> str:
-        """Chiamata corretta a Ollama"""
-        try:
-            response = ollama.chat(
-                model=self.llm_model,
-                messages=[{'role': 'user', 'content': prompt}]
-            )
-            return response['message']['content']
-        except Exception as e:
-            print(f"❌ LLM Error: {e}")
-            return ""
-    
-    def _expand_query_with_kg(self, topic: str, extracted_topics: list = None, blog_domain: str = None) -> str:
-        """
-        Espande la query usando il Knowledge Graph.
-        
-        MIGLIORAMENTO ARCHITETTURALE:
-        Usa i topic generici già estratti (una sola volta dal planner),
-        anziché re-estrarre dal topic specifico ogni volta.
-        
-        Args:
-            topic: Il topic specifico
-            extracted_topics: Topic generici già estratti dal planner (PASSATI DALLO STATE)
-            blog_domain: Il dominio del blog (opzionale, fallback se no extracted_topics)
-        
-        Returns:
-            Query espansa con topic correlati dal KG
-        """
-        if not self.kg_tool:
-            return topic
-        
-        try:
-            # 🔧 Se i topic sono già nel state, usali direttamente
-            if extracted_topics:
-                print(f"\n🔍 KG Query Expansion (usando topic dallo state)")
-                print(f"   Original specific topic: {topic[:60]}...")
-                print(f"   Using pre-extracted topics: {extracted_topics}")
-            else:
-                # Fallback: estrai se non disponibili
-                print(f"\n🔍 KG Query Expansion (estrazione fallback)")
-                print(f"   Original specific topic: {topic[:60]}...")
-                extracted_topics = extract_topics_from_title(topic, blog_domain)
-                print(f"   Extracted generic topics: {extracted_topics}")
-            
-            # STEP 2: Usa i topic estratti per cercare correlati nel KG
-            all_related = []
-            for generic_topic in extracted_topics:
-                try:
-                    related = self.kg_tool.get_related(generic_topic, depth=1)
-                    if related:
-                        all_related.extend(related)
-                        print(f"   - {generic_topic} -> {related[:2]}")
-                except Exception as e:
-                    print(f"   ⚠️ Could not find relations for '{generic_topic}': {e}")
-            
-            # STEP 3: Rimuovi duplicati e crea query espansa
-            unique_related = list(set(all_related))[:3]
-            if unique_related:
-                expanded = f"{topic}\nRelated topics to consider: {', '.join(unique_related)}"
-                print(f"   ✅ KG Expansion complete: +{len(unique_related)} related topics")
-                return expanded
-        
-        except Exception as e:
-            print(f"⚠️ KG expansion error: {e}")
-        
-        return topic
-    
-    def search_and_extract(self, query: str, max_results: int = 1) -> List[Dict]:
-        """Cerca e pulisce i contenuti dalle pagine web"""
-        print(f"  🔍 Searching: {query}")
-        
-        try:
-            search_results = web_search.invoke({"query": query, "max_results": max_results})
-        except Exception as e:
-            print(f"  ❌ Search error: {e}")
-            return []
-        
-        cleaned_docs = []
-        results = search_results.get('results', [])
-        print(f"  📊 Got {len(results)} raw results")
-        
-        for result in results[:max_results]:
-            url = result.get('url')
-            title = result.get('title', 'No title')
-            print(f"  📄 Extracting: {title[:50]}...")
-            
-            try:
-                downloaded = trafilatura.fetch_url(url)
-                if downloaded:
-                    content = trafilatura.extract(downloaded)
-                    if content and len(content) > 200:
-                        cleaned_docs.append({
-                            'url': url,
-                            'title': title,
-                            'content': content[:3000],
-                            'score': result.get('score', 0)
-                        })
-                        print(f"    ✅ Extracted {len(content)} chars")
-            except Exception as e:
-                print(f"    ❌ Extraction error: {e}")
-        
-        return cleaned_docs
-    
-    def react_research(self, topic: str, extracted_topics: list = None, blog_domain: str = None, max_iterations: int = 2) -> Dict:
-        """
-        ReAct-style research agent con K-RAG
-        Thought -> Action -> Observation cycle
-        
-        🔧 MIGLIORAMENTO: Usa topic generici già estratti dal planner (state)
-        """
-        print(f"\n🧠 ReAct Research with K-RAG for: '{topic}'")
-        
-        # STEP 1: Expand query with KG using pre-extracted topics
-        kg_context = None
-        if self.kg_tool:
-            # 🔧 Usa i topic generici già estratti (passati dal state)
-            expanded_query = self._expand_query_with_kg(topic, extracted_topics, blog_domain)
-            
-            # Usa i topic estratti per il contesto KG
-            topics_for_kg = extracted_topics if extracted_topics else []
-            kg_context = []
-            for gt in topics_for_kg:
-                try:
-                    related = self.kg_tool.get_related(gt, depth=1)
-                    if related:
-                        kg_context.extend(related)
-                except:
-                    pass
-            
-            if kg_context:
-                kg_context = list(set(kg_context))[:5]  # Rimuovi duplicati
-                print(f"📊 KG Context: Related topics = {kg_context[:3]}")
-            else:
-                print(f"📊 KG Context: No related topics found")
-        
-        # STEP 2: Query RAG vector store first
-        print("\n📚 Querying RAG vector store...")
-        rag_docs = []
-        try:
-            rag_docs = rag_retrieve(topic, k=3, kg_context=", ".join(kg_context[:3]) if kg_context else None)
-            if rag_docs:
-                print(f"✅ Found {len(rag_docs)} relevant documents in RAG store")
-        except Exception as e:
-            print(f"⚠️ RAG retrieval error: {e}")
-        
-        # STEP 3: Generate search queries (informed by KG and RAG)
-        kg_hint = f"Related topics from KG: {', '.join(kg_context[:3])}" if kg_context else ""
-        rag_hint = f"Already have information on: {rag_docs[0]['metadata'].get('title', 'N/A')[:100]}" if rag_docs else ""
-        
-        query_prompt = f"""
-        Generate 2 specific search queries to find NEW information about: "{topic}"
-        
-        {kg_hint}
-        {rag_hint}
-        
-        Return ONLY a JSON array of strings.
-        Example: ["query 1", "query 2"]
-        """
-        
-        response = self._call_llm(query_prompt)
-        
-        try:
-            match = re.search(r'\[.*?\]', response, re.DOTALL)
-            if match:
-                queries = json.loads(match.group())
-            else:
-                queries = [topic, f"{topic} guide"]
-        except:
-            queries = [topic, f"{topic} tutorial"]
-        
-        print(f"📝 Search queries: {queries}")
-        
-        # STEP 4: Execute web searches
-        all_documents = []
-        
-        # Aggiungi documenti dal RAG come "virtual sources"
-        for doc in rag_docs:
-            all_documents.append({
-                'url': doc['metadata'].get('url', 'rag://local'),
-                'title': doc['metadata'].get('title', 'RAG Document'),
-                'content': doc['content'],
-                'score': doc['relevance_score'],
-                'source': 'rag'
-            })
-        
-        # Web search
-        for query in queries[:max_iterations]:
-            documents = self.search_and_extract(query, max_results=5)
-            if documents:
-                all_documents.extend(documents)
-        
-        # STEP 5: Add new documents to RAG for future use
-        if all_documents:
-            try:
-                rag_add_documents(all_documents)
-                print(f"💾 Added {len(all_documents)} documents to RAG store")
-            except Exception as e:
-                print(f"⚠️ Could not add to RAG: {e}")
-        
-        # Rimuovi duplicati
-        unique_docs = {}
-        for doc in all_documents:
-            if doc['url'] not in unique_docs:
-                unique_docs[doc['url']] = doc
-        all_documents = list(unique_docs.values())
-        
-        # STEP 5.5: Quality and Interestingness Filter
-        filtered_documents = all_documents
-        if len(all_documents) > 3:
-            print(f"\n🏅 Quality Assessment: Evaluating {len(all_documents)} documents...")
-            
-            doc_list_text = "\n".join([
-                f"[{i+1}] Title: {doc['title']}\n    URL: {doc['url']}\n    Excerpt: {doc['content'][:300]}..."
-                for i, doc in enumerate(all_documents)
-            ])
-            
-            quality_prompt = f"""
-            You are a Senior Editor. Your task is to select the 3 best documents from the list below,
-            based on quality, interestingness, authority, clarity, and relevance to the topic.
-            
-            Topic: "{topic}"
-            
-            Available documents:
-            {doc_list_text}
-            
-            Return ONLY a JSON array containing the exact URLs of the 3 best documents.
-            Example: ["https://example.com/a", "https://example.com/b", "https://example.com/c"]
-            
-            Return ONLY the JSON array, nothing else.
-            """
-            
-            quality_response = self._call_llm(quality_prompt)
-            
-            try:
-                url_match = re.search(r'\[.*?\]', quality_response, re.DOTALL)
-                if url_match:
-                    selected_urls = json.loads(url_match.group())
-                    filtered_documents = [doc for doc in all_documents if doc['url'] in selected_urls]
-                    
-                    # Fallback se il filtraggio ha dato meno di 1 risultato
-                    if len(filtered_documents) < 1:
-                        print(f"   ⚠️ LLM selection matched 0 docs, falling back to first 3")
-                        filtered_documents = all_documents[:3]
-                    else:
-                        print(f"   ✅ Selected {len(filtered_documents)} high-quality sources:")
-                        for doc in filtered_documents:
-                            print(f"      📄 {doc['title'][:60]}")
-                else:
-                    print(f"   ⚠️ No JSON array found, falling back to first 3")
-                    filtered_documents = all_documents[:3]
-            except Exception as e:
-                print(f"   ⚠️ Quality filter parse error: {e}, falling back to first 3")
-                filtered_documents = all_documents[:3]
-        else:
-            print(f"\n🏅 Quality Assessment: {len(all_documents)} documents (≤3), keeping all")
-        
-        # STEP 6: Synthesis with KG context
-        if filtered_documents:
-            sources_text = "\n".join([
-                f"Source: {doc['title']}\nURL: {doc['url']}\nExcerpt: {doc['content'][:500]}..."
-                for doc in filtered_documents[:3]
-            ])
-            
-            synthesis_prompt = f"""
-            Topic: {topic}
-            
-            Knowledge Graph Context (related topics): {', '.join(kg_context[:3]) if kg_context else 'None'}
-            
-            Research findings from {len(filtered_documents)} high-quality sources:
-            
-            {sources_text}
-            
-            Provide a comprehensive research summary (300-500 words) for writing a blog post.
-            Include:
-            1. Key facts and main points
-            2. Practical tips or advice
-            3. How this relates to broader context
-            
-            Write in clear paragraphs.
-            """
-            
-            summary = self._call_llm(synthesis_prompt)
-        else:
-            summary = f"No reliable sources found for '{topic}'."
-        
-        return {
-            'topic': topic,
-            'research_summary': summary,
-            'sources': filtered_documents,
-            'num_sources': len(filtered_documents),
-            'rag_sources_count': len(rag_docs),
-            'queries_used': queries,
-            'kg_context': kg_context,
-            'error': False
-        }
+from langchain_ollama import ChatOllama
+from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
+from tools.tavily_search import web_search
+from tools.rag_tool import rag_search
+from tools.kg_tool import kg_search, get_kg_tool
+from tools.rag_retriever import rag_add_documents, rag_retrieve
+from typing import Dict, Any
 
 
-def research_agent(state):
-    """Research agent con K-RAG per workflow"""
-    print("\n" + "="*50)
-    print("🔍 RESEARCH AGENT with K-RAG STARTING")
-    print("="*50)
+# ─── System Prompt per il Research Agent ───────────────────────────────────────
+
+RESEARCH_SYSTEM_PROMPT = """You are an expert Research Agent following the ReAct paradigm (Thought → Action → Observation).
+Your goal is to gather comprehensive, accurate, and diverse information about a given topic to support writing a high-quality blog post.
+
+CRITICAL RULE — ALWAYS THINK BEFORE ACTING:
+Before EVERY tool call, you MUST write a brief "Thought:" explaining:
+- What information you still need
+- Why you chose this specific tool and query
+- How this fits your overall research strategy
+Never call a tool without explaining your reasoning first.
+
+You have access to the following tools:
+
+1. **rag_search**: Search the internal vector store for previously collected documents. 
+   Use this FIRST to check if relevant information already exists.
+   
+2. **kg_search**: Search the Knowledge Graph for related topics and connections.
+   Use this to discover broader context, related subjects, and previously covered topics.
+   
+3. **web_search**: Search the web for recent and up-to-date information.
+   Use this to find NEW information not already in the RAG store, or to get current data.
+
+STRATEGY:
+1. Start by checking the Knowledge Graph (kg_search) for ALL of the pre-extracted topics and keywords at once (by passing them as a comma-separated list, e.g., "Golf, Technique, Improvement") to discover related topics and connections.
+2. Use the related topics found in the KG to EXPAND your queries: when you search the RAG store 
+   or the web, incorporate the related topics from the KG into your search queries to get 
+   broader and more relevant results.
+3. Search the RAG store (rag_search) using both the original topic AND the KG-expanded terms.
+4. Search the web (web_search) to fill gaps, using KG-related topics to diversify your queries.
+5. You may call tools multiple times with different queries if needed.
+6. When you have gathered enough information (key facts, practical tips, broader context), 
+   stop calling tools and provide your final research summary.
+
+EXAMPLE of KG-expanded research:
+- Topic: "Preparazione fisica per il nuoto"
+- KG returns related topics: "Resistenza", "Allenamento Funzionale", "Sport Acquatici"
+- Then search RAG/web with expanded queries like:
+  "preparazione fisica nuoto resistenza allenamento funzionale"
+  "sport acquatici endurance training"
+
+FINAL OUTPUT:
+When you are satisfied with the information gathered, respond with a comprehensive 
+research summary (300-500 words) that includes:
+1. Key facts and main points about the topic
+2. Practical tips or advice
+3. How this topic relates to broader context
+4. Sources and references found
+
+Write the summary in clear paragraphs. Do NOT call any more tools when producing the final summary.
+
+IMPORTANT: Do NOT include any <think> tags or internal reasoning in your final summary. 
+Provide ONLY the clean research summary text."""
+
+
+# ─── Helpers per formattare le Observation nel log ─────────────────────────────
+
+def _format_observation(tool_name: str, tool_result) -> str:
+    """Formatta l'observation per il log in modo leggibile e conciso."""
+
+    if tool_name == "rag_search":
+        result_str = str(tool_result)
+        # Estrai solo i titoli dai risultati RAG
+        lines = result_str.split('\n')
+        titles = [l.strip() for l in lines if l.strip().startswith('[')]
+        if titles:
+            # Mostra solo la riga con titolo e score (prima riga di ogni blocco)
+            title_lines = []
+            for t in titles:
+                # Prendi solo fino alla fine della riga del titolo (prima di \n con contenuto)
+                title_lines.append(t.split('\n')[0])
+            return "RAG results:\n   " + "\n   ".join(title_lines)
+        return result_str[:200]
+
+    elif tool_name == "web_search":
+        if isinstance(tool_result, dict):
+            results = tool_result.get('results', [])
+            if results:
+                formatted = []
+                for i, r in enumerate(results, 1):
+                    title = r.get('title', 'N/A')[:80]
+                    url = r.get('url', '')
+                    formatted.append(f"[{i}] {title}\n       {url}")
+                return f"Web results ({len(results)} found):\n   " + "\n   ".join(formatted)
+        return str(tool_result)[:300]
+
+    elif tool_name == "kg_search":
+        return str(tool_result)
+
+    else:
+        return str(tool_result)[:300]
+
+
+# ─── Funzione principale per il workflow LangGraph ────────────────────────────
+
+def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Research agent con loop ReAct custom per workflow LangGraph.
     
+    Usa ChatOllama (qwen3) con bind_tools per decidere autonomamente
+    quali tool chiamare durante la ricerca.
+    """
+    print("\n" + "=" * 50)
+    print("🔍 RESEARCH AGENT (ReAct) STARTING")
+    print("=" * 50)
+
     topic = state.get('current_topic')
     kg_manager = state.get('kg_manager')
-    blog_domain = state.get('blog_domain')  
-    extracted_topics = state.get('extracted_graph_topics')  
-    
+    blog_domain = state.get('blog_domain')
+    extracted_topics = state.get('extracted_graph_topics', [])
+
     print(f"📚 Current topic: '{topic}'")
     print(f"📌 Blog domain: '{blog_domain}'")
-    print(f"🔧 Pre-extracted topics: {extracted_topics}") 
-    
+    print(f"🔧 Pre-extracted topics: {extracted_topics}")
+
+    # ── Caso: nessun topic ──
     if not topic or topic == "None":
         return {
             "research_results": {
@@ -337,13 +140,205 @@ def research_agent(state):
                 "num_sources": 0
             }
         }
-    
-    researcher = ResearchAgent(kg_manager=kg_manager)
-    results = researcher.react_research(topic, extracted_topics=extracted_topics, blog_domain=blog_domain)  
-    
+
+    # ── Inizializza KG tool singleton se disponibile ──
+    if kg_manager:
+        get_kg_tool(kg_manager)
+        print("✅ Knowledge Graph tool initialized")
+
+    # ── Setup LLM con tools (kg_search solo se KG disponibile) ──
+    tools = [web_search, rag_search]
+    if kg_manager:
+        tools.append(kg_search)
+    tool_map = {t.name: t for t in tools}
+
+    llm = ChatOllama(model="qwen3", temperature=0)
+    llm_with_tools = llm.bind_tools(tools)
+
+    print(f"🤖 LLM: qwen3 with {len(tools)} tools bound: {list(tool_map.keys())}")
+
+    # ── Costruisci contesto iniziale ──
+    topic_context = f"Research this topic thoroughly: \"{topic}\""
+    if extracted_topics:
+        topic_context += f"\n\nRelated generic topics (from Knowledge Graph extraction): {', '.join(extracted_topics)}"
+    if blog_domain:
+        topic_context += f"\nBlog domain: {blog_domain}"
+
+    # ── Messaggi iniziali ──
+    messages = [
+        SystemMessage(content=RESEARCH_SYSTEM_PROMPT),
+        HumanMessage(content=topic_context),
+    ]
+
+    # ── Loop ReAct custom ──
+    max_iterations = 5
+    research_summary = ""
+    tool_calls_log = []    # Log di tutte le tool call effettuate
+    collected_sources = [] # Sorgenti web raccolte per rag_add_documents
+    rag_docs_found = 0     # Contatore documenti RAG trovati
+    kg_topics_found = 0    # Contatore topic KG trovati
+
+    print(f"\n🔄 Starting ReAct loop (max {max_iterations} iterations)...\n")
+
+    for iteration in range(max_iterations):
+        print(f"\n{'─' * 50}")
+        print(f"🔄 Iteration {iteration + 1}/{max_iterations}")
+        print(f"{'─' * 50}")
+
+        try:
+            response = llm_with_tools.invoke(messages)
+        except Exception as e:
+            print(f"❌ LLM invocation error: {e}")
+            research_summary = f"LLM error during research: {str(e)}"
+            break
+
+        messages.append(response)
+
+        # ── Estrai il testo dell'LLM (rimuovendo <think> tags) ──
+        raw_content = response.content or ""
+        clean_content = re.sub(
+            r'<think>.*?</think>', '', raw_content, flags=re.DOTALL
+        ).strip()
+
+        # ── Controlla se l'LLM ha deciso di chiamare tool ──
+        if not response.tool_calls:
+            # Nessun tool call → l'LLM ha finito, il testo è il summary finale
+            research_summary = clean_content
+            print(f"\n📝 Final Answer:\n{research_summary}")
+            print(f"\n✅ ReAct loop completed early at iteration {iteration + 1}/{max_iterations} — LLM has enough information")
+            break
+
+        # ── THOUGHT: mostra il ragionamento (se presente) ──
+        if clean_content:
+            print(f"\n💭 Thought: {clean_content}")
+        else:
+            print(f"\n💭 Thought: (reasoning internalized, proceeding to action)")
+
+        # ── ACTION + OBSERVATION per ogni tool call ──
+        for tc in response.tool_calls:
+            tool_name = tc["name"]
+            tool_args = tc["args"]
+            tool_call_id = tc["id"]
+
+            print(f"\n⚡ Action: {tool_name}({tool_args})")
+            tool_calls_log.append({"tool": tool_name, "args": tool_args})
+
+            try:
+                if tool_name in tool_map:
+                    tool_result = tool_map[tool_name].invoke(tool_args)
+                    result_str = str(tool_result)
+
+                    # Raccogli sorgenti per il writer e per rag_add_documents
+                    if tool_name == "web_search" and isinstance(tool_result, dict):
+                        for r in tool_result.get('results', []):
+                            url = r.get('url', '')
+                            # Evita duplicati in collected_sources
+                            if url and not any(src['url'] == url for src in collected_sources):
+                                collected_sources.append({
+                                    'url': url,
+                                    'title': r.get('title', ''),
+                                    'content': r.get('content', '')[:3000],
+                                    'source': 'web_search'
+                                })
+                    elif tool_name == "rag_search":
+                        # Recupera dati strutturati RAG per passarli al writer
+                        query_used = tool_args.get('query', '')
+                        rag_structured = rag_retrieve(query_used, k=5)
+                        for doc in rag_structured:
+                            url = doc['metadata'].get('url', 'rag://local')
+                            # Evita duplicati in collected_sources
+                            if url and not any(src['url'] == url for src in collected_sources):
+                                collected_sources.append({
+                                    'url': url,
+                                    'title': doc['metadata'].get('title', 'RAG Document'),
+                                    'content': doc['content'],
+                                    'source': 'rag'
+                                })
+
+                    # Traccia contatori per RAG e KG
+                    if tool_name == "rag_search":
+                        # Conta i risultati trovati (ogni blocco inizia con [N])
+                        rag_docs_found += len(re.findall(r'^\[\d+\]', result_str, re.MULTILINE))
+                    elif tool_name == "kg_search":
+                        # Conta topic correlati trovati
+                        if "Topics related to" in result_str:
+                            topics_part = result_str.split(": ", 1)[-1]
+                            kg_topics_found += len(topics_part.split(", "))
+
+                    # Formatta observation in modo leggibile
+                    formatted_obs = _format_observation(tool_name, tool_result)
+                    print(f"👁️ Observation: {formatted_obs}")
+                else:
+                    result_str = f"Error: tool '{tool_name}' not found."
+                    print(f"👁️ Observation: ❌ {result_str}")
+            except Exception as e:
+                result_str = f"Tool execution error: {str(e)}"
+                print(f"👁️ Observation: ❌ {result_str}")
+
+            # Aggiungi il risultato come ToolMessage nella cronologia
+            messages.append(ToolMessage(
+                content=result_str,
+                tool_call_id=tool_call_id,
+            ))
+
+    else:
+        # Max iterazioni raggiunte senza summary finale
+        print(f"\n⚠️ Max iterations ({max_iterations}) reached without final answer")
+        # Prova a estrarre contenuto dall'ultima risposta
+        if messages and hasattr(messages[-1], 'content') and messages[-1].content:
+            raw = messages[-1].content
+            research_summary = re.sub(
+                r'<think>.*?</think>', '', raw, flags=re.DOTALL
+            ).strip()
+        
+        if not research_summary:
+            # Fallback: chiedi all'LLM di sintetizzare senza tool
+            print("📝 Requesting final summary from LLM...")
+            try:
+                fallback_llm = ChatOllama(model="qwen3", temperature=0)
+                messages.append(HumanMessage(
+                    content="Please provide your final research summary now, "
+                            "based on all the information gathered so far. "
+                            "Do NOT call any tools. Do NOT include <think> tags."
+                ))
+                fallback_response = fallback_llm.invoke(messages)
+                raw = fallback_response.content or ""
+                research_summary = re.sub(
+                    r'<think>.*?</think>', '', raw, flags=re.DOTALL
+                ).strip()
+            except Exception as e:
+                research_summary = f"Could not generate summary: {str(e)}"
+
+    # ── Post-loop: aggiungi solo i nuovi documenti web al RAG store ──
+    web_sources = [src for src in collected_sources if src.get('source') == 'web_search']
+    if web_sources:
+        try:
+            added = rag_add_documents(web_sources)
+            print(f"💾 Post-loop: Added {added} chunks from {len(web_sources)} unique web sources to RAG store")
+        except Exception as e:
+            print(f"⚠️ Could not add documents to RAG: {e}")
+
+    # ── Risultato finale ──
+    results = {
+        'topic': topic,
+        'research_summary': research_summary,
+        'sources': collected_sources,
+        'num_sources': len(collected_sources),
+        'rag_docs_found': rag_docs_found,
+        'kg_topics_found': kg_topics_found,
+        'tool_calls_log': tool_calls_log,
+        'iterations_used': iteration + 1 if 'iteration' in dir() else 0,
+        'error': False
+    }
+
     print(f"\n✅ Research complete:")
-    print(f"   - Web sources: {results['num_sources']}")
-    print(f"   - RAG sources: {results['rag_sources_count']}")
-    print("="*50)
-    
+    print(f"   - Total tool calls: {len(tool_calls_log)}")
+    print(f"   - RAG documents retrieved: {rag_docs_found}")
+    print(f"   - KG related topics found: {kg_topics_found}")
+    print(f"   - Web sources collected: {len(web_sources)}")
+    print(f"   - Total unique sources (for writer): {results['num_sources']}")
+    print(f"   - Iterations used: {results['iterations_used']}/{max_iterations}")
+    print(f"   - Summary length: {len(research_summary)} chars")
+    print("=" * 50)
+
     return {"research_results": results}

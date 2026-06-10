@@ -139,7 +139,7 @@ class FactCheckAgent:
         issues_found = []
         
         for idx, claim in enumerate(claims, 1):
-            print(f"\n   [{idx}/{len(claims)}] Verifying: {claim[:60]}...")
+            print(f"\n   [{idx}/{len(claims)}] Verifying: {claim}...")
             result = self.verify_claim(claim)
             verified_claims.append(result)
             

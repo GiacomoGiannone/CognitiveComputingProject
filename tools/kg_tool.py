@@ -1,5 +1,6 @@
 # tools/kg_tool.py
 from kg.neo4j_manager import Neo4jManager
+from langchain.tools import tool
 from typing import List, Dict, Any
 
 class KGQueryTool:
@@ -61,3 +62,33 @@ def get_kg_tool(kg_manager):
     if kg_tool_instance is None:
         kg_tool_instance = KGQueryTool(kg_manager)
     return kg_tool_instance
+
+
+@tool
+def kg_search(topic: str) -> str:
+    """Search the Knowledge Graph for topics related to the given topic (or multiple topics separated by commas, e.g., 'Golf, Technique, Improvement').
+    Returns related topics and their connections. Use this tool to discover
+    broader context, related subjects, and previously covered topics."""
+    global kg_tool_instance
+    if kg_tool_instance is None:
+        return "Knowledge Graph not available."
+    try:
+        # Dividi per virgola se vengono passati più topic contemporaneamente
+        topics = [t.strip() for t in topic.split(',') if t.strip()]
+        all_related = []
+        for t in topics:
+            related = kg_tool_instance.get_related(t, depth=1)
+            if related:
+                all_related.extend(related)
+        
+        # Deduplica mantenendo l'ordine
+        unique_related = []
+        for r in all_related:
+            if r not in unique_related:
+                unique_related.append(r)
+                
+        if not unique_related:
+            return f"No related topics found for '{topic}' in the Knowledge Graph."
+        return f"Topics related to '{topic}': {', '.join(unique_related)}"
+    except Exception as e:
+        return f"KG query error: {str(e)}"

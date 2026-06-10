@@ -63,12 +63,25 @@ class RAGRetriever:
         if not documents:
             return 0
         
+        # Recupera URL già presenti nel vector store per evitare duplicati
+        existing_urls = set()
+        if self.vectorstore and hasattr(self.vectorstore, 'docstore') and hasattr(self.vectorstore.docstore, '_dict'):
+            for existing_doc in self.vectorstore.docstore._dict.values():
+                u = existing_doc.metadata.get('url')
+                if u:
+                    existing_urls.add(u)
+        
         from langchain_community.vectorstores import FAISS
         
         texts = []
         metadatas = []
         
         for doc in documents:
+            url = doc.get('url', '')
+            if url and url in existing_urls:
+                # Documento già indicizzato nel database, lo saltiamo
+                continue
+                
             content = doc.get('content', '')
             if not content or len(content) < 100:
                 continue
@@ -85,7 +98,7 @@ class RAGRetriever:
                 if len(chunk.strip()) > 50:
                     texts.append(chunk)
                     metadatas.append({
-                        'url': doc.get('url', ''),
+                        'url': url,
                         'title': doc.get('title', '')[:100],
                         'source': doc.get('source', 'web_search')
                     })
@@ -98,7 +111,7 @@ class RAGRetriever:
         return len(texts)
     
     def retrieve(self, query: str, k: int = 5, kg_context: str = None) -> List[Dict]:
-        """Retrieves relevant documents"""
+        """Retrieves relevant documents, ensuring they are unique by URL/title"""
         if self.vectorstore is None:
             print("⚠️ Vectorstore not initialized")
             return []
@@ -109,20 +122,42 @@ class RAGRetriever:
             expanded_query = f"{query}\n\nRelated: {kg_context[:500]}"
         
         try:
-            results = self.vectorstore.similarity_search_with_score(expanded_query, k=k)
+            # Recupera più chunk del necessario per poter fare deduplicazione per documento
+            k_search = k * 4
+            results = self.vectorstore.similarity_search_with_score(expanded_query, k=k_search)
             
             documents = []
+            seen_urls = set()
+            seen_titles = set()
+            
             for doc, score in results:
-                # Salta documento placeholder
+                # Salta documento placeholder o di inizializzazione
                 if "placeholder" in doc.page_content.lower() or "initialization" in doc.page_content.lower():
                     continue
+                
+                url = doc.metadata.get('url', '')
+                title = doc.metadata.get('title', '')
+                
+                # Deduplica per URL (o per titolo se manca l'URL)
+                if url:
+                    if url in seen_urls:
+                        continue
+                    seen_urls.add(url)
+                elif title:
+                    if title in seen_titles:
+                        continue
+                    seen_titles.add(title)
+                
                 documents.append({
                     'content': doc.page_content,
                     'metadata': doc.metadata,
                     'relevance_score': float(1 - score)  # Normalizza score
                 })
+                
+                # Raggiunto il limite di k documenti unici, ci fermiamo
+                if len(documents) >= k:
+                    break
             
-            print(f"📚 Retrieved {len(documents)} relevant documents")
             return documents
         except Exception as e:
             print(f"⚠️ Retrieval error: {e}")

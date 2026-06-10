@@ -3,7 +3,7 @@ from tavily import TavilyClient
 import os
 
 @tool
-def web_search(query, max_results = 10):
+def web_search(query, max_results = 5):
     """Search the web for recent sports news and return results."""
     api_key = os.getenv("TAVILY_API_KEY")
     if not api_key:
