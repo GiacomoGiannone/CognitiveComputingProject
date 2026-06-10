@@ -40,7 +40,9 @@ class HumanReviewAgent:
         choice = input("\nYour choice (1/2/3): ").strip()
         
         if choice == "1":
-            return {"action": "approve", "feedback": None}
+            proceed_choice = input("Vuoi procedere subito alla ricerca del prossimo topic del piano editoriale? (s/n): ").strip().lower()
+            proceed = proceed_choice in ("s", "si")
+            return {"action": "approve", "feedback": None, "proceed": proceed}
         elif choice == "2":
             modifications = input("Enter modifications needed: ")
             return {"action": "modify", "feedback": modifications}
@@ -193,7 +195,8 @@ def human_review_agent(state):
         return {
             'review_action': 'approved',
             'post_id': post_id,
-            'final_post': post
+            'final_post': post,
+            'proceed_to_next_topic': review_result.get('proceed', False)
         }
     
     elif review_result['action'] == 'modify':

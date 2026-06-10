@@ -47,7 +47,10 @@ def create_blog_workflow(kg_manager: Neo4jManager):
         action = state.get('review_action', '')
         
         if action == 'approved':
-            return END
+            if state.get('proceed_to_next_topic', False):
+                return "planner"
+            else:
+                return END
         elif action == 'modify_requested':
             return "writer"
         elif action == 'rejected' or state.get('requires_research'):
@@ -64,6 +67,7 @@ def create_blog_workflow(kg_manager: Neo4jManager):
         {
             "writer": "writer",
             "research": "research",
+            "planner": "planner",
             END: END
         }
     )

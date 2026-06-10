@@ -58,10 +58,9 @@ def main():
         if output:
             print(f"Step output: {list(output.keys())}")
         
-        # Controlla se 'final_post' è presente in uno dei nodi eseguiti nello step
+        # Segnala il successo se il post è stato approvato
         if output and any('final_post' in node_data for node_data in output.values() if isinstance(node_data, dict)):
-            print("\n✅ Post published!")
-            break
+            print("\n✅ Post approved and published!")
     
     if kg:
         kg.close()
