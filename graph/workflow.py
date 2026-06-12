@@ -8,6 +8,7 @@ from agents.research_agent import research_agent
 from agents.writer_agent import writer_agent
 from agents.fact_checker import fact_check_agent
 from agents.human_review import human_review_agent
+from agents.score_agent import score_agent
 
 from kg.neo4j_manager import Neo4jManager
 
@@ -19,6 +20,7 @@ def create_blog_workflow(kg_manager: Neo4jManager):
     workflow.add_node("research", research_agent)
     workflow.add_node("writer", writer_agent)
     workflow.add_node("fact_check", fact_check_agent)
+    workflow.add_node("score", score_agent)
     workflow.add_node("human_review", human_review_agent)
     
     # Definisci edge
@@ -26,6 +28,7 @@ def create_blog_workflow(kg_manager: Neo4jManager):
     workflow.add_edge("planner", "research")
     workflow.add_edge("research", "writer")
     workflow.add_edge("writer", "fact_check")
+    workflow.add_edge("writer", "score")
     
     # Conditional edges
     def after_fact_check(state):

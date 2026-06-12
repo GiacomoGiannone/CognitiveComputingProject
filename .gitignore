@@ -1,3 +1,13 @@
 .env
 __pycache__
 .venv
+
+checkpoints/
+outputs/
+models/
+wandb/
+
+*.bin
+*.pt
+*.pth
+*.safetensors
