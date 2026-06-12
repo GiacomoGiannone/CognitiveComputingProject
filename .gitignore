@@ -1,13 +1,28 @@
-.env
-__pycache__
-.venv
-
-checkpoints/
-outputs/
-models/
-wandb/
-
+# File grandi e modelli
 *.bin
 *.pt
 *.pth
 *.safetensors
+*.onnx
+*.h5
+*.pickle
+*.pkl
+
+# Cartelle
+models/
+checkpoints/
+outputs/
+wandb/
+logs/
+data/vector_store/
+__pycache__/
+.venv/
+.env
+
+# Dataset
+*.jsonl
+data/bert_dataset/
+
+# IDE
+.vscode/
+.idea/
