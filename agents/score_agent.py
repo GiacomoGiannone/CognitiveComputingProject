@@ -211,12 +211,126 @@ class ScoreAgent:
         print("="*60)
         return trainer
     
-    def score(self, post_content: str) -> Dict:
+    def _fallback_score_only(self, post_content: str) -> Dict:
+        """
+        Calcola SOLO lo score di fallback (euristica) senza BERT
+        """
+        word_count = len(post_content.split())
+        
+        score = 0.5
+        if 500 <= word_count <= 1500:
+            score += 0.1
+        elif word_count < 200:
+            score -= 0.2
+        
+        if '[Source:' in post_content or 'fonte' in post_content.lower():
+            score += 0.1
+        
+        score = min(max(score, 0.0), 1.0)
+        
+        return {
+            'quality_score': round(score, 3),
+            'quality_label': self._score_to_label(score),
+            'confidence': 0.5,
+            'method': 'fallback_heuristic',
+            'details': {
+                'word_count': word_count,
+                'has_citations': '[Source:' in post_content or 'fonte' in post_content.lower(),
+                'length_bonus': 0.1 if (500 <= word_count <= 1500) else (-0.2 if word_count < 200 else 0)
+            }
+        }
+    
+    def score_with_comparison(self, post_content: str) -> Dict:
+        """
+        Valuta la qualità RESTITUENDO ENTRAMBI gli score (fallback E BERT)
+        """
+        # Calcola fallback score
+        fallback_result = self._fallback_score_only(post_content)
+        
+        # Calcola BERT score
+        if self.model is None:
+            bert_result = None
+        else:
+            inputs = self.tokenizer(
+                post_content,
+                truncation=True,
+                padding='max_length',
+                max_length=512,
+                return_tensors='pt'
+            )
+            inputs = {k: v.to(self.device) for k, v in inputs.items()}
+            
+            with torch.no_grad():
+                _, score = self.model(**inputs)
+                if isinstance(score, torch.Tensor):
+                    score = score.item()
+            
+            score = min(max(score, 0.0), 1.0)
+            
+            bert_result = {
+                'quality_score': round(score, 3),
+                'quality_label': self._score_to_label(score),
+                'confidence': self._estimate_confidence(score),
+                'method': 'bert_finetuned'
+            }
+        
+        # Stampa comparativa
+        self._print_comparison(fallback_result, bert_result)
+        
+        # Sceglie BERT se disponibile, altrimenti fallback
+        return bert_result if bert_result else fallback_result
+    
+    def _print_comparison(self, fallback: Dict, bert: Dict = None):
+        """
+        Stampa comparazione tra score fallback e BERT
+        """
+        print("\n" + "="*60)
+        print("📊 QUALITY SCORE COMPARISON")
+        print("="*60)
+        
+        print(f"\n🔧 FALLBACK (euristica):")
+        print(f"   Score: {fallback['quality_score']}")
+        print(f"   Label: {fallback['quality_label']}")
+        print(f"   Confidence: {fallback['confidence']}")
+        if 'details' in fallback:
+            print(f"   Details: word_count={fallback['details']['word_count']}, "
+                  f"has_citations={fallback['details']['has_citations']}")
+        
+        if bert:
+            print(f"\n🤖 BERT (fine-tuned):")
+            print(f"   Score: {bert['quality_score']}")
+            print(f"   Label: {bert['quality_label']}")
+            print(f"   Confidence: {bert['confidence']}")
+            
+            # Differenza tra i due metodi
+            diff = abs(fallback['quality_score'] - bert['quality_score'])
+            diff_icon = "🟢" if diff < 0.1 else "🟡" if diff < 0.2 else "🔴"
+            print(f"\n{diff_icon} Difference: {diff:.3f} ({diff*100:.1f}%)")
+            
+            # Quale metodo ha più confidence?
+            if fallback['confidence'] > bert['confidence']:
+                print(f"   📌 Fallback ha confidence maggiore ({fallback['confidence']:.0%} vs {bert['confidence']:.0%})")
+            else:
+                print(f"   📌 BERT ha confidence maggiore ({bert['confidence']:.0%} vs {fallback['confidence']:.0%})")
+        else:
+            print(f"\n⚠️ BERT model not available, using fallback only")
+        
+        print("="*60)
+    
+    def score(self, post_content: str, print_comparison: bool = True) -> Dict:
         """
         Valuta la qualità di un singolo post
+        
+        Args:
+            post_content: Testo del post da valutare
+            print_comparison: Se True, stampa anche il fallback per confronto
         """
+        if print_comparison:
+            return self.score_with_comparison(post_content)
+        
+        # Versione semplice (solo BERT o fallback)
         if self.model is None:
-            return self._fallback_score(post_content)
+            return self._fallback_score_only(post_content)
         
         inputs = self.tokenizer(
             post_content,
@@ -256,27 +370,6 @@ class ScoreAgent:
     def _estimate_confidence(self, score: float) -> float:
         confidence = 0.5 + abs(score - 0.5)
         return round(min(confidence, 0.95), 3)
-    
-    def _fallback_score(self, post_content: str) -> Dict:
-        word_count = len(post_content.split())
-        
-        score = 0.5
-        if 500 <= word_count <= 1500:
-            score += 0.1
-        elif word_count < 200:
-            score -= 0.2
-        
-        if '[Source:' in post_content or 'fonte' in post_content.lower():
-            score += 0.1
-        
-        score = min(max(score, 0.0), 1.0)
-        
-        return {
-            'quality_score': round(score, 3),
-            'quality_label': self._score_to_label(score),
-            'confidence': 0.5,
-            'method': 'fallback_heuristic'
-        }
 
 
 def score_agent(state):
@@ -299,13 +392,12 @@ def score_agent(state):
         print("⚠️ Nessun contenuto da valutare")
         return {'quality_evaluation': {'quality_score': 0.5}, 'quality_passed': True}
     
-    evaluation = scorer.score(content)
+    # Ora stampa ENTRAMBI gli score (fallback + BERT)
+    evaluation = scorer.score(content, print_comparison=True)
     
-    print(f"\n📊 Quality Evaluation Result:")
+    print(f"\n✅ Final decision (using: {evaluation['method']})")
     print(f"   Score: {evaluation['quality_score']}")
     print(f"   Label: {evaluation['quality_label']}")
-    print(f"   Confidence: {evaluation['confidence']}")
-    print(f"   Method: {evaluation['method']}")
     
     quality_passed = evaluation['quality_score'] >= 0.4
     
