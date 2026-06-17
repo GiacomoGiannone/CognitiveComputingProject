@@ -16,3 +16,15 @@ faiss-cpu
 
 # HTTP / web search (Tavily)
 tavily-python
+
+# Embedding
+torch
+
+# Transformers
+transformers
+
+# Scikit learn
+scikit-learn
+
+# Accelerate
+accelerate

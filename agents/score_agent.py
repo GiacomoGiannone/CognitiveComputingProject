@@ -122,8 +122,20 @@ class ScoreAgent:
     def _load_model(self, model_path: str):
         """Carica modello fine-tunato"""
         self.model = QualityRegressionModel()
-        # Carica i pesi
-        state_dict = torch.load(f"{model_path}/pytorch_model.bin", map_location=self.device)
+        # Carica i pesi (supporta sia pytorch_model.bin che model.safetensors)
+        bin_path = os.path.join(model_path, "pytorch_model.bin")
+        safetensors_path = os.path.join(model_path, "model.safetensors")
+        
+        if os.path.exists(safetensors_path):
+            from safetensors.torch import load_file
+            state_dict = load_file(safetensors_path, device=self.device)
+            print("📂 Trovato modello in formato safetensors, caricamento in corso...")
+        elif os.path.exists(bin_path):
+            state_dict = torch.load(bin_path, map_location=self.device)
+            print("📂 Trovato modello in formato PyTorch bin, caricamento in corso...")
+        else:
+            raise FileNotFoundError(f"Nessun file di pesi del modello trovato in {model_path}")
+            
         self.model.load_state_dict(state_dict)
         self.model.to(self.device)
         self.model.eval()
@@ -379,7 +391,10 @@ def score_agent(state):
     print("="*50)
     
     model_path = "models/score_agent"
-    if os.path.exists(model_path) and os.path.exists(f"{model_path}/pytorch_model.bin"):
+    bin_path = os.path.join(model_path, "pytorch_model.bin")
+    safetensors_path = os.path.join(model_path, "model.safetensors")
+    
+    if os.path.exists(model_path) and (os.path.exists(bin_path) or os.path.exists(safetensors_path)):
         scorer = ScoreAgent(model_path=model_path)
     else:
         print("⚠️ Modello non trovato, uso fallback euristico")

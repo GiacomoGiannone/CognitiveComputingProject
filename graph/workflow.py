@@ -27,8 +27,8 @@ def create_blog_workflow(kg_manager: Neo4jManager):
     workflow.set_entry_point("planner")
     workflow.add_edge("planner", "research")
     workflow.add_edge("research", "writer")
-    workflow.add_edge("writer", "fact_check")
     workflow.add_edge("writer", "score")
+    workflow.add_edge("score", "fact_check")
     
     # Conditional edges
     def after_fact_check(state):
