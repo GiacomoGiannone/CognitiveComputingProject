@@ -8,12 +8,91 @@ Fine-tuning per regressione su dataset di post etichettati.
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset
-from transformers import AutoTokenizer, AutoModel, Trainer, TrainingArguments
+from transformers import AutoTokenizer, AutoModel, Trainer, TrainingArguments, TrainerCallback
 from typing import List, Dict
 import json
 import os
 import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error
+import matplotlib.pyplot as plt
+from datetime import datetime
+
+
+class LossLoggingCallback(TrainerCallback):
+    """Callback per registrare e plottare la loss durante il training"""
+    
+    def __init__(self):
+        self.train_losses = []
+        self.eval_losses = []
+        self.steps = []
+        self.eval_steps = []
+        self.train_epochs = []
+        self.eval_epochs = []
+        
+    def on_log(self, args, state, control, logs=None, **kwargs):
+        if logs is not None:
+            if 'loss' in logs:
+                self.train_losses.append(logs['loss'])
+                self.steps.append(state.global_step)
+                self.train_epochs.append(state.epoch)
+            if 'eval_loss' in logs:
+                self.eval_losses.append(logs['eval_loss'])
+                self.eval_steps.append(state.global_step)
+                self.eval_epochs.append(state.epoch)
+    
+    def plot_losses(self, output_dir: str = None):
+        """Genera e salva il grafico delle loss"""
+        if not self.train_losses:
+            print("⚠️ Nessuna loss registrata durante il training.")
+            return
+        
+        plt.figure(figsize=(14, 7))
+        
+        # Plot training loss
+        if self.train_losses:
+            plt.plot(self.steps, self.train_losses, 
+                    label='Training Loss', color='blue', linewidth=2, alpha=0.8)
+        
+        # Plot evaluation loss
+        if self.eval_losses:
+            plt.plot(self.eval_steps, self.eval_losses, 
+                    label='Validation Loss', color='red', linewidth=2, marker='o', markersize=6)
+        
+        plt.title('Andamento della Loss durante il Training', fontsize=16, fontweight='bold')
+        plt.xlabel('Step', fontsize=12)
+        plt.ylabel('Loss (MSE)', fontsize=12)
+        plt.legend(fontsize=12)
+        plt.grid(True, alpha=0.3)
+        
+        # Aggiungi annotazione con valori finali
+        final_train_loss = self.train_losses[-1] if self.train_losses else None
+        final_eval_loss = self.eval_losses[-1] if self.eval_losses else None
+        
+        info_text = f"Training: {len(self.train_losses)} steps"
+        if final_train_loss:
+            info_text += f"\nFinal Train Loss: {final_train_loss:.4f}"
+        if final_eval_loss:
+            info_text += f"\nFinal Val Loss: {final_eval_loss:.4f}"
+        
+        plt.annotate(info_text, 
+                    xy=(0.02, 0.98), 
+                    xycoords='axes fraction',
+                    fontsize=10,
+                    verticalalignment='top',
+                    bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
+        
+        plt.tight_layout()
+        
+        # Salva il grafico
+        if output_dir:
+            os.makedirs(output_dir, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            save_path = os.path.join(output_dir, f'loss_plot_{timestamp}.png')
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            print(f"📊 Grafico della loss salvato in: {save_path}")
+        
+        plt.show()
+        plt.close()
 
 
 class QualityRegressionDataset(Dataset):
@@ -110,6 +189,7 @@ class ScoreAgent:
     def __init__(self, model_path: str = None, device: str = None):
         self.device = device or ('cuda' if torch.cuda.is_available() else 'cpu')
         self.tokenizer = AutoTokenizer.from_pretrained("dbmdz/bert-base-italian-uncased")
+        self.loss_history = {'train': [], 'val': []}
         
         if model_path and os.path.exists(model_path):
             self._load_model(model_path)
@@ -142,9 +222,19 @@ class ScoreAgent:
         print(f"✅ Modello caricato da {model_path}")
     
     def train(self, train_path: str, val_path: str = None, output_dir: str = "models/score_agent",
-              epochs: int = 3, batch_size: int = 4, learning_rate: float = 2e-5):
+              epochs: int = 3, batch_size: int = 4, learning_rate: float = 2e-5,
+              plot_loss: bool = True):
         """
         Addestra il modello di regressione della qualità
+        
+        Args:
+            train_path: Percorso al file di training (jsonl)
+            val_path: Percorso al file di validazione (jsonl)
+            output_dir: Directory dove salvare il modello
+            epochs: Numero di epoche
+            batch_size: Batch size
+            learning_rate: Learning rate
+            plot_loss: Se True, mostra il grafico della loss
         """
         print("\n" + "="*60)
         print("🏋️ Fine-tuning BERT italiano per Quality Scoring")
@@ -161,6 +251,9 @@ class ScoreAgent:
         self.model = QualityRegressionModel()
         self.model.to(self.device)
         
+        # Callback per logging della loss
+        loss_callback = LossLoggingCallback()
+        
         # Metriche di valutazione
         def compute_metrics(eval_pred):
             predictions, labels = eval_pred
@@ -175,7 +268,7 @@ class ScoreAgent:
                 'acc_within_0.1': acc_within_01
             }
         
-        # Configurazione training
+        # Configurazione training - FIX: usa lista vuota invece di None
         training_args = TrainingArguments(
             output_dir=output_dir,
             num_train_epochs=epochs,
@@ -191,6 +284,7 @@ class ScoreAgent:
             metric_for_best_model="mse",
             greater_is_better=False,
             learning_rate=learning_rate,
+            report_to=[],  # FIX: lista vuota invece di None
         )
         
         # Trainer
@@ -200,10 +294,19 @@ class ScoreAgent:
             train_dataset=train_dataset,
             eval_dataset=val_dataset,
             compute_metrics=compute_metrics if val_dataset else None,
+            callbacks=[loss_callback] if plot_loss else [],
         )
         
         # Training
         print("\n🚀 Inizio training...")
+        print(f"   Epochs: {epochs}")
+        print(f"   Batch size: {batch_size}")
+        print(f"   Learning rate: {learning_rate}")
+        print(f"   Training samples: {len(train_dataset)}")
+        if val_dataset:
+            print(f"   Validation samples: {len(val_dataset)}")
+        print("-" * 40)
+        
         trainer.train()
         
         # Salva modello
@@ -219,6 +322,11 @@ class ScoreAgent:
             print(f"   MSE: {eval_results.get('eval_mse', 'N/A'):.4f}")
             print(f"   MAE: {eval_results.get('eval_mae', 'N/A'):.4f}")
             print(f"   Accuracy within 0.1: {eval_results.get('eval_acc_within_0.1', 'N/A'):.2%}")
+        
+        # Plot della loss
+        if plot_loss:
+            print("\n📈 Generazione grafico della loss...")
+            loss_callback.plot_losses(output_dir)
         
         print("="*60)
         return trainer
@@ -442,6 +550,8 @@ if __name__ == "__main__":
                         help='Number of epochs')
     parser.add_argument('--batch_size', type=int, default=4,
                         help='Batch size')
+    parser.add_argument('--no-plot', action='store_true',
+                        help='Disable loss plotting')
     
     args = parser.parse_args()
     
@@ -451,5 +561,6 @@ if __name__ == "__main__":
         val_path=args.val,
         output_dir=args.output,
         epochs=args.epochs,
-        batch_size=args.batch_size
+        batch_size=args.batch_size,
+        plot_loss=not args.no_plot
     )
