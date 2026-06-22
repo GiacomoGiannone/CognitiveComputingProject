@@ -9,17 +9,21 @@ class Neo4jManager:
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
         self._init_schema()
     
+    #metodo privato per inizializzare lo schema del database
     def _init_schema(self):
         """Inizializza i constraint e indici"""
+        #apriamo una sessione con with, in tal modo la sessione viene chiusa automaticamente al termine del blocco
         with self.driver.session() as session:
             # Crea constraint
-            session.run("CREATE CONSTRAINT topic_name IF NOT EXISTS FOR (t:Topic) REQUIRE t.name IS UNIQUE")
-            session.run("CREATE CONSTRAINT post_id IF NOT EXISTS FOR (p:Post) REQUIRE p.id IS UNIQUE")
-            session.run("CREATE CONSTRAINT source_url IF NOT EXISTS FOR (s:Source) REQUIRE s.url IS UNIQUE")
+            session.run("CREATE CONSTRAINT topic_name IF NOT EXISTS FOR (t:Topic) REQUIRE t.name IS UNIQUE") #topic name deve essere unico
+            session.run("CREATE CONSTRAINT post_id IF NOT EXISTS FOR (p:Post) REQUIRE p.id IS UNIQUE") #post id deve essere unico
+            session.run("CREATE CONSTRAINT source_url IF NOT EXISTS FOR (s:Source) REQUIRE s.url IS UNIQUE") #source url deve essere unico
     
     def add_topic(self, name: str, description: str = None) -> Dict:
         """Aggiunge un topic al grafo"""
         with self.driver.session() as session:
+            #MERGE cerca un nodo TOPIC con quel nome. SE non esiste, lo crea. 
+            #SET fa assegnamento della descrizione e della data di creazione
             result = session.run(
                 """
                 MERGE (t:Topic {name: $name})
@@ -33,10 +37,12 @@ class Neo4jManager:
     
     def add_post(self, title: str, content: str, topics: List[str], sources: List[str], claims: List[str] = None) -> str:
         """Aggiunge un post e lo connette a topics, sources e claims"""
+        #genera un id random per il post
         post_id = str(uuid.uuid4())
         
         with self.driver.session() as session:
             # Crea il post
+            # Usiamo CREATE al post di MERGE perche' siamo sicuri che i POST siano univoci per id, quindi non vogliamo fare MERGE su un id esistente
             session.run(
                 """
                 CREATE (p:Post {
@@ -52,10 +58,10 @@ class Neo4jManager:
             )
             
             # Connetti a topic
-            for topic in topics:
+            for topic in topics:    #per ogni topic nella lista dei topics, troviamo il post, e facciamo MERGE sul topic (se non esiste lo crea), e poi creiamo la relazione COVERS tra il post e il topic
                 session.run(
                     """
-                    MATCH (p:Post {id: $post_id})
+                    MATCH (p:Post {id: $post_id})   
                     MERGE (t:Topic {name: $topic_name})
                     CREATE (p)-[:COVERS]->(t)
                     """,
@@ -101,6 +107,7 @@ class Neo4jManager:
     
     def get_related_topics(self, topic: str, limit: int = 5) -> List[str]:
         """Trova topic correlati"""
+        #cerchiamo i topic correlati a un topic specifico con profondita' di 1 o 2, escludendo il topic stesso, e restituiamo i nomi dei topic correlati
         with self.driver.session() as session:
             result = session.run(
                 """
@@ -127,6 +134,7 @@ class Neo4jManager:
     
     def get_editorial_history(self) -> List[Dict]:
         """Recupera lo storico editoriale"""
+        #per ogni post, recuperiamo il titolo, la data di creazione e i topic coperti, ordinando per data di creazione decrescente
         with self.driver.session() as session:
             result = session.run(
                 """
@@ -166,10 +174,14 @@ class Neo4jManager:
         Trova topic correlati per arricchire la ricerca
         """
         try:
+            
             # Estrai topic dalla query (semplificato)
             # In produzione, usare NER o keyword extraction
             
             # Cerca topic correlati nel KG
+            # prima cerchiamo topic correlati alla query, confrontando la query con i nomi dei topic
+            # poi troviamo i topic correlati a quei topic
+            
             result = self.query("""
                 MATCH (t:Topic)
                 WHERE t.name CONTAINS $query OR $query CONTAINS t.name
@@ -178,14 +190,15 @@ class Neo4jManager:
                 LIMIT $limit
             """, {"query": query.lower(), "limit": max_related})
             
+            #aggiungi i suggerimenti alla query originale
             if result:
                 related = [r['related_topic'] for r in result]
                 expanded = f"{query}\n\nRelated topics to consider: {', '.join(related)}"
-                print(f"🔍 KG Expanded query: '{query}' -> Added related: {related}")
+                print(f" KG Expanded query: '{query}' -> Added related: {related}")
                 return expanded
             
         except Exception as e:
-            print(f"⚠️ KG query expansion failed: {e}")
+            print(f" KG query expansion failed: {e}")
         
         return query
     
@@ -226,5 +239,5 @@ class Neo4jManager:
             return context
             
         except Exception as e:
-            print(f"⚠️ Could not get KG context: {e}")
+            print(f" KG context retrieval failed: {e}")
             return f"No additional context found for {topic}"
