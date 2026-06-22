@@ -93,7 +93,8 @@ def _format_observation(tool_name: str, tool_result) -> str:
                 for i, r in enumerate(results, 1):
                     title = r.get('title', 'N/A')[:80]
                     url = r.get('url', '')
-                    formatted.append(f"[{i}] {title}\n       {url}")
+                    score = r.get('score', 0.0)
+                    formatted.append(f"[{i}] {title} (Score: {score:.3f})\n       {url}")
                 return f"Web results ({len(results)} found):\n   " + "\n   ".join(formatted)
         return str(tool_result)[:300]
 
@@ -245,7 +246,8 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
                                     'url': url,
                                     'title': r.get('title', ''),
                                     'content': r.get('content', '')[:3000],
-                                    'source': 'web_search'
+                                    'source': 'web_search',
+                                    'relevance_score': r.get('score', 0.0)
                                 })
                     elif tool_name == "rag_search":
                         # Recupera dati strutturati RAG per passarli al writer
@@ -259,7 +261,8 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
                                     'url': url,
                                     'title': doc['metadata'].get('title', 'RAG Document'),
                                     'content': doc['content'],
-                                    'source': 'rag'
+                                    'source': 'rag',
+                                    'relevance_score': doc.get('relevance_score', 0.0)
                                 })
 
                     # Traccia contatori per RAG e KG
@@ -315,6 +318,9 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
                 ).strip()
             except Exception as e:
                 research_summary = f"Could not generate summary: {str(e)}"
+
+    # Ordina tutte le sorgenti raccolte per pertinenza decrescente
+    collected_sources.sort(key=lambda x: x.get('relevance_score', 0.0), reverse=True)
 
     # ── Post-loop: aggiungi solo i nuovi documenti web al RAG store ──
     web_sources = [src for src in collected_sources if src.get('source') == 'web_search']
