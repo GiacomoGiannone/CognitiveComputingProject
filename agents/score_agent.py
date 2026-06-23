@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer, AutoModel, Trainer, TrainingArguments, TrainerCallback
+from langsmith import traceable
 from typing import List, Dict
 import json
 import os
@@ -360,6 +361,7 @@ class ScoreAgent:
             }
         }
     
+    @traceable(name="ScoreAgent-ScoreWithComparison", run_type="chain", tags=["score", "comparison"])
     def score_with_comparison(self, post_content: str) -> Dict:
         """
         Valuta la qualità RESTITUENDO ENTRAMBI gli score (fallback E BERT)
@@ -437,6 +439,7 @@ class ScoreAgent:
         
         print("="*60)
     
+    @traceable(name="ScoreAgent-Score", run_type="chain", tags=["score"])
     def score(self, post_content: str, print_comparison: bool = True) -> Dict:
         """
         Valuta la qualità di un singolo post
@@ -492,6 +495,7 @@ class ScoreAgent:
         return round(min(confidence, 0.95), 3)
 
 
+@traceable(name="ScoreAgent", run_type="chain", tags=["agent", "score"])
 def score_agent(state):
     """Integrazione nel workflow LangGraph"""
     print("\n" + "="*50)

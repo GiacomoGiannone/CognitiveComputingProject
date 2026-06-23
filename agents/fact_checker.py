@@ -3,6 +3,7 @@ import json
 import re
 from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage
+from langsmith import traceable
 from tools.tavily_search import web_search
 from typing import List, Dict
 
@@ -15,6 +16,7 @@ class FactCheckAgent:
         response = llm.invoke([HumanMessage(content=prompt)])
         return response.content
     
+    @traceable(name="FactCheck-ExtractClaims", run_type="chain", tags=["fact_check", "claims"])
     def extract_claims(self, post_content: str) -> List[str]:
         """Estrae claims verificabili dal post - SOLO fatti specifici"""
         prompt = f"""
@@ -78,6 +80,7 @@ class FactCheckAgent:
             
         return cleaned_claims[:5]  # Limita a 5 claims
     
+    @traceable(name="FactCheck-VerifyClaim", run_type="chain", tags=["fact_check", "verification"])
     def verify_claim(self, claim: str) -> Dict:
         """Verifica un claim specifico con parsing JSON rigoroso"""
         search_query = f"verify fact: {claim}"
@@ -129,6 +132,7 @@ class FactCheckAgent:
             'sources': search_results.get('results', [])
         }
     
+    @traceable(name="FactCheck-FullPost", run_type="chain", tags=["fact_check"])
     def fact_check_post(self, post_content: str) -> Dict:
         """Fact-check completo del post"""
         claims = self.extract_claims(post_content)
@@ -181,6 +185,7 @@ class FactCheckAgent:
         }
 
 
+@traceable(name="FactCheckAgent", run_type="chain", tags=["agent", "fact_check"])
 def fact_check_agent(state):
     """Fact check agent per workflow"""
     print("\n" + "="*60)

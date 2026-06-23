@@ -2,7 +2,9 @@
 import json
 import os
 from datetime import datetime
+from langsmith import traceable
 
+@traceable(name="PlanUpdater", run_type="chain", tags=["planner", "update"])
 def update_plan_after_post(state):
     """
     Aggiorna il piano editoriale dopo che un post è stato approvato

@@ -1,8 +1,10 @@
 # agents/writer_agent.py
 from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage
+from langsmith import traceable
 import re
 
+@traceable(name="ExtractRelevantContent", run_type="chain", tags=["helper", "writer"])
 def extract_relevant_content(content: str, topic: str, max_chars: int = 2500) -> str:
     """
     Estrae le parti più rilevanti del contenuto in base al topic.
@@ -74,6 +76,7 @@ def extract_relevant_content(content: str, topic: str, max_chars: int = 2500) ->
     return "\n\n".join([p for _, p in selected_with_indices])
 
 
+@traceable(name="WriterAgent", run_type="chain", tags=["agent", "writer"])
 def writer_agent(state):
     """Writer agent - scrive il post basato sulla ricerca"""
     

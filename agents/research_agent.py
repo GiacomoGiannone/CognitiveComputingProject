@@ -4,6 +4,7 @@ Research Agent con approccio ReAct (Thought → Action → Observation).
 L'LLM (qwen3) decide autonomamente quali tool usare, con quali parametri
 e quante volte, tramite bind_tools di LangChain.
 """
+from langsmith import traceable
 import re
 from langchain_ollama import ChatOllama
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
@@ -68,6 +69,7 @@ Write the summary in clear paragraphs. Do NOT call any more tools when producing
 
 # ─── Helpers per formattare le Observation nel log ─────────────────────────────
 
+@traceable(name="FormatObservation", run_type="chain", tags=["helper", "research"])
 def _format_observation(tool_name: str, tool_result) -> str:
     """Formatta l'observation per il log in modo leggibile e conciso."""
 
@@ -107,6 +109,7 @@ def _format_observation(tool_name: str, tool_result) -> str:
 
 # ─── Funzione principale per il workflow LangGraph ────────────────────────────
 
+@traceable(name="ResearchAgent", run_type="chain", tags=["agent", "research", "react"])
 def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Research agent con loop ReAct custom per workflow LangGraph.

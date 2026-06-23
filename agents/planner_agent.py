@@ -1,11 +1,13 @@
 # agents/planner_agent.py
 from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage
+from langsmith import traceable
 import json
 import os
 from datetime import datetime
 from tools.entity_extractor import extract_topics_from_title
 
+@traceable(name="PlannerAgent", run_type="chain", tags=["agent", "planner"])
 def planner_agent(state):
     """Planner agent - genera piano editoriale e seleziona il primo topic"""
     

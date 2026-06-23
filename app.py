@@ -1,10 +1,24 @@
 # app.py (parte principale)
 import os
 from dotenv import load_dotenv
+from langsmith import traceable
 from kg.neo4j_manager import Neo4jManager
 from graph.workflow import create_blog_workflow
 
 load_dotenv(override=True)
+
+@traceable(run_type="chain", name="blog_generation", tags=["workflow", "main"])
+def run_blog_workflow(app, initial_state, kg):
+    """Esegue il workflow completo, tracciato come singola run su LangSmith."""
+    for output in app.stream(initial_state):
+        if output:
+            print(f"Step output: {list(output.keys())}")
+        
+        # Segnala il successo se il post è stato approvato
+        if output and any('final_post' in node_data for node_data in output.values() if isinstance(node_data, dict)):
+            print("\n✅ Post approved and published!")
+    
+    return {"status": "completed"}
 
 def main():
     # Verifica Tavily
@@ -51,16 +65,9 @@ def main():
         "final_post": {}
     }
     
-    # Esegui workflow
+    # Esegui workflow (tracciato come singola run "blog_generation" su LangSmith)
     print("\n🚀 Starting workflow...\n")
-    
-    for output in app.stream(initial_state):
-        if output:
-            print(f"Step output: {list(output.keys())}")
-        
-        # Segnala il successo se il post è stato approvato
-        if output and any('final_post' in node_data for node_data in output.values() if isinstance(node_data, dict)):
-            print("\n✅ Post approved and published!")
+    run_blog_workflow(app, initial_state, kg)
     
     if kg:
         kg.close()

@@ -3,6 +3,7 @@ import json
 import re
 from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage
+from langsmith import traceable
 from typing import Dict
 from tools.entity_extractor import extract_topics_from_title
 
@@ -10,6 +11,7 @@ class HumanReviewAgent:
     def __init__(self):
         self.review_state = {}
     
+    @traceable(name="HumanReview-PresentForReview", run_type="chain", tags=["human_review"])
     def present_for_review(self, post: Dict, fact_check_results: Dict, state: Dict = None) -> Dict:
         """Presenta il post per review umana"""
         
@@ -75,6 +77,7 @@ class HumanReviewAgent:
         return new_post
 
 
+@traceable(name="HumanReviewAgent", run_type="chain", tags=["agent", "human_review"])
 def human_review_agent(state):
     """Human review step nel workflow"""
     reviewer = HumanReviewAgent()

@@ -61,7 +61,7 @@ e quindi sceglie vela e si ha trattati = [calcio, basket, tennis, vela], non tra
 Quando la lista di non trattati si e' finita, crea nuovamente 5 argomenti, li aggiunge alla lista di non trattati e cosi' via.
 (FATTO)
 
-(DA FARE) usare langsmith per debug del grafo. 
+(FATTO) usare langsmith per debug del grafo. Decoratori @traceable aggiunti su tutti gli agenti e tools.
 
 STEP 2: Research
 Il research agent deve essere in grado di cercare informazioni su internet, utilizzando il tool tavily search.

@@ -1,6 +1,7 @@
 # tools/kg_tool.py
 from kg.neo4j_manager import Neo4jManager
 from langchain.tools import tool
+from langsmith import traceable
 from typing import List, Dict, Any
 
 class KGQueryTool:
@@ -10,6 +11,7 @@ class KGQueryTool:
     def __init__(self, kg_manager: Neo4jManager):
         self.kg = kg_manager
     
+    @traceable(name="KG-QueryTopics", run_type="chain", tags=["kg", "query"])
     def query_topics(self, topic_filter: str = None) -> List[Dict]:
         """Query topics dal KG"""
         if topic_filter:
@@ -30,6 +32,7 @@ class KGQueryTool:
         
         return self.kg.query(cypher, params)
     
+    @traceable(name="KG-GetRelated", run_type="chain", tags=["kg", "query"])
     def get_related(self, topic: str, depth: int = 1) -> List[str]:
         """Trova topic correlati"""
         cypher = f"""

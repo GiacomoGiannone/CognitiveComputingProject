@@ -2,6 +2,7 @@
 import os
 from typing import List, Dict, Any
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langsmith import traceable
 import tempfile
 import numpy as np
 
@@ -58,6 +59,7 @@ class RAGRetriever:
         self._save()
         print(f"✅ Created new vector store at {self.persist_dir}")
     
+    @traceable(name="RAG-AddDocuments", run_type="chain", tags=["rag", "indexing"])
     def add_documents(self, documents: List[Dict]) -> int:
         """Aggiunge documenti al vector store"""
         if not documents:
@@ -110,6 +112,7 @@ class RAGRetriever:
         
         return len(texts)
     
+    @traceable(name="RAG-Retrieve", run_type="retriever", tags=["rag", "retrieval"])
     def retrieve(self, query: str, k: int = 5, kg_context: str = None) -> List[Dict]:
         """Retrieves relevant documents, ensuring they are unique by URL/title"""
         if self.vectorstore is None:
@@ -180,11 +183,13 @@ def get_rag_retriever():
         _rag_instance = RAGRetriever()
     return _rag_instance
 
+@traceable(name="RAG-RetrieveWrapper", run_type="retriever", tags=["rag"])
 def rag_retrieve(query: str, k: int = 5, kg_context: str = None) -> List[Dict]:
     """Tool function per RAG retrieval"""
     retriever = get_rag_retriever()
     return retriever.retrieve(query, k, kg_context)
 
+@traceable(name="RAG-AddDocumentsWrapper", run_type="chain", tags=["rag"])
 def rag_add_documents(documents: List[Dict]) -> int:
     """Tool function per aggiungere documenti al RAG"""
     retriever = get_rag_retriever()

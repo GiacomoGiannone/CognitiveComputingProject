@@ -7,6 +7,7 @@ Converte un titolo lungo e specifico in 2-3 topic generici e riutilizzabili.
 
 from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage
+from langsmith import traceable
 import json
 import re
 from typing import List, Dict, Any
@@ -26,6 +27,7 @@ class EntityExtractor:
             print(f"❌ LLM Error in EntityExtractor: {e}")
             return ""
     
+    @traceable(name="EntityExtractor-ExtractTopics", run_type="chain", tags=["entity_extraction", "kg"])
     def extract_graph_topics(self, post_title: str, blog_domain: str = None) -> List[str]:
         """
         Estrae 2-3 topic generici dal titolo specifico dell'articolo.
@@ -177,6 +179,7 @@ def get_entity_extractor(llm_model: str = "llama3.1") -> EntityExtractor:
     return _extractor
 
 
+@traceable(name="ExtractTopicsFromTitle", run_type="chain", tags=["entity_extraction"])
 def extract_topics_from_title(post_title: str, blog_domain: str = None) -> List[str]:
     """
     Funzione helper semplice per estrarre topic.

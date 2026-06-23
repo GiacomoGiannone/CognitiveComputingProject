@@ -32,3 +32,6 @@ scikit-learn
 
 # Accelerate
 accelerate
+
+# Plotting
+matplotlib
