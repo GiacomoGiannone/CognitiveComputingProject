@@ -5,7 +5,8 @@ Questo tool risolve il problema architetturale di avere topic troppo specifici n
 Converte un titolo lungo e specifico in 2-3 topic generici e riutilizzabili.
 """
 
-import ollama
+from langchain_ollama import ChatOllama
+from langchain_core.messages import HumanMessage
 import json
 import re
 from typing import List, Dict, Any
@@ -18,11 +19,9 @@ class EntityExtractor:
     def _call_llm(self, prompt: str) -> str:
         """Chiamata a Ollama"""
         try:
-            response = ollama.chat(
-                model=self.llm_model,
-                messages=[{'role': 'user', 'content': prompt}]
-            )
-            return response['message']['content']
+            llm = ChatOllama(model=self.llm_model, temperature=0)
+            response = llm.invoke([HumanMessage(content=prompt)])
+            return response.content
         except Exception as e:
             print(f"❌ LLM Error in EntityExtractor: {e}")
             return ""

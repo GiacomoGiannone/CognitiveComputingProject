@@ -1,5 +1,6 @@
 # agents/writer_agent.py
-import ollama
+from langchain_ollama import ChatOllama
+from langchain_core.messages import HumanMessage
 import re
 
 def extract_relevant_content(content: str, topic: str, max_chars: int = 2500) -> str:
@@ -182,12 +183,10 @@ REQUIREMENTS:
 Write the complete post now:
 """
     
-    response = ollama.chat(
-        model="llama3.1",
-        messages=[{'role': 'user', 'content': prompt}]
-    )
+    llm = ChatOllama(model="llama3.1", temperature=0.7)
+    response = llm.invoke([HumanMessage(content=prompt)])
     
-    content = response['message']['content']
+    content = response.content
     
     # Estrai titolo
     lines = content.split('\n')

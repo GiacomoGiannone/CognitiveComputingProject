@@ -1,6 +1,7 @@
 from langchain.tools import tool
 from tavily import TavilyClient
 import os
+import trafilatura
 
 @tool
 def web_search(query, max_results = 5):
@@ -19,4 +20,19 @@ def web_search(query, max_results = 5):
         search_depth="advanced",
         max_results=max_results
     )
+    
+    if isinstance(results, dict) and "results" in results:
+        for r in results["results"]:
+            url = r.get("url")
+            if url:
+                try:
+                    downloaded = trafilatura.fetch_url(url)
+                    if downloaded:
+                        extracted = trafilatura.extract(downloaded)
+                        if extracted and extracted.strip():
+                            r["content"] = extracted
+                except Exception:
+                    # In caso di errore di rete o altro errore, manteniamo lo snippet originale
+                    pass
+                    
     return results

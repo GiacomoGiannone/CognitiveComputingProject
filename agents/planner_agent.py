@@ -1,5 +1,6 @@
 # agents/planner_agent.py
-import ollama
+from langchain_ollama import ChatOllama
+from langchain_core.messages import HumanMessage
 import json
 import os
 from datetime import datetime
@@ -118,16 +119,14 @@ def planner_agent(state):
         Return ONLY the JSON object, nothing else.
         """
         
-        response = ollama.chat(
-            model="llama3.1",
-            messages=[{'role': 'user', 'content': prompt}]
-        )
+        llm = ChatOllama(model="llama3.1", temperature=0.7)
+        response = llm.invoke([HumanMessage(content=prompt)])
         
         # Parsing dei topic e della giustificazione
         justification = "Sequential order based on plan creation."
         try:
             import re
-            content = response['message']['content']
+            content = response.content
             match = re.search(r'\{.*?\}', content, re.DOTALL)
             if not match:
                 match = re.search(r'\{.*\}', content, re.DOTALL)

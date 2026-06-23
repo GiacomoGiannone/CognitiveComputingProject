@@ -1,7 +1,8 @@
 # agents/human_review.py
 import json
 import re
-import ollama
+from langchain_ollama import ChatOllama
+from langchain_core.messages import HumanMessage
 from typing import Dict
 from tools.entity_extractor import extract_topics_from_title
 
@@ -151,15 +152,13 @@ def human_review_agent(state):
                             Se non trovi relazioni, ritorna: []
                             """
                             
-                            response = ollama.chat(
-                                model="llama3.1",
-                                messages=[{'role': 'user', 'content': relation_prompt}]
-                            )
+                            llm = ChatOllama(model="llama3.1", temperature=0)
+                            response = llm.invoke([HumanMessage(content=relation_prompt)])
                             
                             # Parse JSON delle relazioni con fallback
                             relations = []
                             try:
-                                content = response['message']['content']
+                                content = response.content
                                 # Estrai blocco JSON
                                 json_match = re.search(r'\[.*\]', content, re.DOTALL)
                                 if json_match:

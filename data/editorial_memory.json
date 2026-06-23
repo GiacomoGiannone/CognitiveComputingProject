@@ -158,14 +158,14 @@
     {
       "created_at": "2026-06-19T11:25:48.132063Z",
       "finished": false,
-      "last_topic_index": -1,
+      "last_topic_index": 0,
       "justification": "This plan focuses on specific skills and topics relevant to various sports, ensuring that the content appeals to a broad audience interested in improving their performance. The selection of topics covers both technical and strategic aspects, catering to readers with different levels of experience.",
       "topics": [
         {
           "index": 0,
           "topic": "Unlocking the Secrets of a Perfect Free Kick in Soccer: Tips from Professional Players",
-          "finished": false,
-          "finished_at": null
+          "finished": true,
+          "finished_at": "2026-06-20T20:31:36.333999Z"
         },
         {
           "index": 1,

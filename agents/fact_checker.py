@@ -1,7 +1,8 @@
 # fact_check_agent.py
 import json
 import re
-import ollama
+from langchain_ollama import ChatOllama
+from langchain_core.messages import HumanMessage
 from tools.tavily_search import web_search
 from typing import List, Dict
 
@@ -10,11 +11,9 @@ class FactCheckAgent:
         self.llm_model = llm_model
 
     def _chat(self, prompt: str) -> str:
-        response = ollama.chat(
-            model=self.llm_model,
-            messages=[{"role": "user", "content": prompt}]
-        )
-        return response["message"]["content"]
+        llm = ChatOllama(model=self.llm_model, temperature=0)
+        response = llm.invoke([HumanMessage(content=prompt)])
+        return response.content
     
     def extract_claims(self, post_content: str) -> List[str]:
         """Estrae claims verificabili dal post - SOLO fatti specifici"""

@@ -7,6 +7,7 @@ neo4j
 # LangChain core ecosystem
 langchain
 langchain-community
+langsmith
 
 # Ollama integration (nuovo stile, evita deprecated)
 langchain-ollama
@@ -16,6 +17,9 @@ faiss-cpu
 
 # HTTP / web search (Tavily)
 tavily-python
+
+# Text download and extraction from web page
+trafilatura
 
 # Embedding
 torch
