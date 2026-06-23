@@ -10,10 +10,11 @@ def planner_agent(state):
     """Planner agent - genera piano editoriale e seleziona il primo topic"""
     
     print("\n" + "="*50)
-    print("📋 PLANNER AGENT STARTING")
+    print("PLANNER AGENT STARTING")
     print("="*50)
     
     # Recupera il dominio
+    # Se il dominio non è specificato, usa "Sport" come default
     domain = state.get('blog_domain', 'Sport')
     domain_label = "Sport" if "sport" not in str(domain).lower() else domain
 
@@ -39,6 +40,10 @@ def planner_agent(state):
     memory = load_memory(memory_path)
     
     # Normalizza tutti i piani
+    #facciamo la normalizzazione dei topic in modo che siano sempre in formato dict con index, topic, finished, finished_at
+    #potrebbero esserci formati differenti
+    #ad esempio, prima potremmo avere topics = ["Topic 1", "Topic 2", "Topic 3"]
+    #mentre dopo la normalizzazione, avremo topics = [{"index": 0, "topic": "Topic 1", "finished": False, "finished_at": None}, ...]
     for plan in memory.get("plans", []):
         topics_normalized = []
         for idx, item in enumerate(plan.get("topics", [])):
