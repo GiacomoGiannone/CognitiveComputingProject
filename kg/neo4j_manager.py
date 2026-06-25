@@ -132,6 +132,19 @@ class Neo4jManager:
                 topic1=topic1, topic2=topic2
             )
     
+    def connect_post_to_topic(self, post_id: str, topic_name: str, relation_type: str = "COVERS"):
+        """Connette un Post a un Topic esistente con relazione COVERS.
+        Usato per collegare il nuovo post ai topic già presenti nel KG."""
+        with self.driver.session() as session:
+            session.run(
+                f"""
+                MATCH (p:Post {{id: $post_id}})
+                MATCH (t:Topic {{name: $topic_name}})
+                MERGE (p)-[:{relation_type}]->(t)
+                """,
+                post_id=post_id, topic_name=topic_name
+            )
+    
     def get_editorial_history(self) -> List[Dict]:
         """Recupera lo storico editoriale"""
         #per ogni post, recuperiamo il titolo, la data di creazione e i topic coperti, ordinando per data di creazione decrescente

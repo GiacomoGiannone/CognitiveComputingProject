@@ -169,7 +169,7 @@ def human_review_agent(state):
                             except (json.JSONDecodeError, AttributeError) as e:
                                 print(f"   ⚠️ Could not parse relations JSON: {e}")
                             
-                            # Crea le relazioni nel grafo
+                            # Crea le relazioni tra Topic nel grafo
                             if relations:
                                 print(f"   ✅ Found {len(relations)} relations to create:")
                                 for topic1, topic2 in relations:
@@ -180,6 +180,32 @@ def human_review_agent(state):
                                         print(f"      ⚠️ Could not create relation: {rel_err}")
                             else:
                                 print(f"   ℹ️ No semantic relations found")
+                            
+                            # CONNESSIONE POST → TOPIC ESISTENTI
+                            # Identifica i topic esistenti coinvolti nelle relazioni trovate
+                            # e collega il Post direttamente a quei topic
+                            existing_set = set(all_existing_topics)
+                            new_set = set(extracted_topics)
+                            connected_existing = set()
+                            
+                            for pair in relations:
+                                if len(pair) == 2:
+                                    for t in pair:
+                                        # Collega solo se è un topic esistente e NON è già
+                                        # tra i topic del post (quelli hanno già COVERS)
+                                        if t in existing_set and t not in new_set:
+                                            connected_existing.add(t)
+                            
+                            if connected_existing and post_id:
+                                print(f"\n   📌 Connecting Post to {len(connected_existing)} existing topics:")
+                                for existing_topic in sorted(connected_existing):
+                                    try:
+                                        kg.connect_post_to_topic(post_id, existing_topic, "COVERS")
+                                        print(f"      📎 Post → COVERS → {existing_topic}")
+                                    except Exception as conn_err:
+                                        print(f"      ⚠️ Could not connect post to '{existing_topic}': {conn_err}")
+                            else:
+                                print(f"\n   ℹ️ No existing topics to connect the post to")
                         else:
                             print(f"   ℹ️ Not enough topics to establish relations")
                     except Exception as rel_err:
