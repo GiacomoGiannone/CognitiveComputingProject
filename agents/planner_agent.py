@@ -134,6 +134,12 @@ def planner_agent(state):
         try:
             import re
             content = response.content
+            #re.DOTALL permette di fare match su più linee
+            #il pattern \{.*?\} cerca il primo oggetto JSON tra parentesi graffe
+            #il pattern \{.*\} cerca l'ultimo oggetto JSON tra parentesi graffe
+            #come mai lo facciamo? Perché a volte il modello può generare testo extra prima o dopo l'oggetto JSON, 
+            #quindi cerchiamo di estrarre solo l'oggetto JSON valido
+            #ne facciamo due tentativi: prima cerchiamo il primo match non greedy, se non lo troviamo, cerchiamo l'ultimo match greedy
             match = re.search(r'\{.*?\}', content, re.DOTALL)
             if not match:
                 match = re.search(r'\{.*\}', content, re.DOTALL)
@@ -160,6 +166,7 @@ def planner_agent(state):
             ]
         
         # Filtra duplicati
+        #potrebbero esserci duplicati o topic vuoti, quindi li filtriamo
         cleaned = []
         seen = set()
         for t in topics:

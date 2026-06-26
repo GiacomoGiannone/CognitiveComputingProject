@@ -18,20 +18,25 @@ def extract_relevant_content(content: str, topic: str, max_chars: int = 2500) ->
         return content
 
     # Parole chiave del topic pulite (ignora stop words comuni)
+    # Intuizione geniale: l'LLM capisce ugualmente il topic anche se non ci sono gli articoli
+    # Quindi se ignoriamo articoli e preposizioni, possiamo comprimere meglio il contenuto senza perdere rilevanza
     stop_words = {
         'il', 'lo', 'la', 'i', 'gli', 'le', 'di', 'a', 'da', 'in', 'con', 'su', 'per', 'tra', 'fra', 
         'and', 'the', 'of', 'in', 'to', 'for', 'with', 'on', 'at', 'by', 'an', 'a', 'is', 'how', 
         'tips', 'improving', 'your', 'for', 'about'
     }
+    #Trova tutte le parole di almeno 3 caratteri nel topic, ignora stop words
     topic_words = [w.lower() for w in re.findall(r'\b\w{3,}\b', topic) if w.lower() not in stop_words]
     if not topic_words:
         topic_words = topic.lower().split()
 
     # Dividi in paragrafi
+    # Ogni paragrafo adesso e' una stringa senza spazi iniziali o finali, e ignoriamo paragrafi vuoti
     paragraphs = [p.strip() for p in content.split('\n') if p.strip()]
     if not paragraphs:
         return content[:max_chars]
 
+    # Adesso che abbiamo splittato i paragrafi, 
     # Assegna un punteggio a ciascun paragrafo
     scored_paragraphs = []
     for idx, p in enumerate(paragraphs):
@@ -192,6 +197,8 @@ Write the complete post now:
     content = response.content
     
     # Estrai titolo
+    # Piu spesso che no non esistera' alcun titolo che inizia con #,
+    # Usiamo comunque il topic come titolo di default, e se troviamo un # lo usiamo come titolo
     lines = content.split('\n')
     title = topic
     for line in lines:

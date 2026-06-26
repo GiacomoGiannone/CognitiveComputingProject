@@ -37,6 +37,10 @@ def create_blog_workflow(kg_manager: Neo4jManager):
         else:
             return "writer"
     
+    #il primo parametro e' src_node
+    #il secondo parametro e'la firma della funzione che decide quale nodo visitare dopo
+    #il terzo parametro e' un dizionario che mappa i nomi dei nodi di destinazione ai nomi dei nodi di destinazione effettivi
+    #questo perche' la funzione di callback usa i nodi human_review e writer e non li conosce, quindi dobbiamo passarli come dizionario
     workflow.add_conditional_edges(
         "fact_check",
         after_fact_check,

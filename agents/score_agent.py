@@ -338,26 +338,26 @@ class ScoreAgent:
         """
         word_count = len(post_content.split())
         
-        score = 0.5
-        if 500 <= word_count <= 1500:
-            score += 0.1
-        elif word_count < 200:
+        score = 0.0
+        if 1500 <= word_count <= 3000:
+            score += 0.4
+        elif word_count < 1500:
             score -= 0.2
         
         if '[Source:' in post_content or 'fonte' in post_content.lower():
             score += 0.1
         
+        #manteniamo lo score compreso tra 0 e 1
         score = min(max(score, 0.0), 1.0)
         
         return {
             'quality_score': round(score, 3),
             'quality_label': self._score_to_label(score),
-            'confidence': 0.5,
             'method': 'fallback_heuristic',
             'details': {
                 'word_count': word_count,
                 'has_citations': '[Source:' in post_content or 'fonte' in post_content.lower(),
-                'length_bonus': 0.1 if (500 <= word_count <= 1500) else (-0.2 if word_count < 200 else 0)
+                'length_bonus': 0.4 if (1500 <= word_count <= 3000) else (-0.2 if word_count < 1500 else 0)
             }
         }
     
@@ -392,7 +392,6 @@ class ScoreAgent:
             bert_result = {
                 'quality_score': round(score, 3),
                 'quality_label': self._score_to_label(score),
-                'confidence': self._estimate_confidence(score),
                 'method': 'bert_finetuned'
             }
         
@@ -413,7 +412,6 @@ class ScoreAgent:
         print(f"\n🔧 FALLBACK (euristica):")
         print(f"   Score: {fallback['quality_score']}")
         print(f"   Label: {fallback['quality_label']}")
-        print(f"   Confidence: {fallback['confidence']}")
         if 'details' in fallback:
             print(f"   Details: word_count={fallback['details']['word_count']}, "
                   f"has_citations={fallback['details']['has_citations']}")
@@ -422,20 +420,11 @@ class ScoreAgent:
             print(f"\n🤖 BERT (fine-tuned):")
             print(f"   Score: {bert['quality_score']}")
             print(f"   Label: {bert['quality_label']}")
-            print(f"   Confidence: {bert['confidence']}")
             
             # Differenza tra i due metodi
             diff = abs(fallback['quality_score'] - bert['quality_score'])
             diff_icon = "🟢" if diff < 0.1 else "🟡" if diff < 0.2 else "🔴"
             print(f"\n{diff_icon} Difference: {diff:.3f} ({diff*100:.1f}%)")
-            
-            # Quale metodo ha più confidence?
-            if fallback['confidence'] > bert['confidence']:
-                print(f"   📌 Fallback ha confidence maggiore ({fallback['confidence']:.0%} vs {bert['confidence']:.0%})")
-            else:
-                print(f"   📌 BERT ha confidence maggiore ({bert['confidence']:.0%} vs {fallback['confidence']:.0%})")
-        else:
-            print(f"\n⚠️ BERT model not available, using fallback only")
         
         print("="*60)
     
@@ -474,7 +463,6 @@ class ScoreAgent:
         return {
             'quality_score': round(score, 3),
             'quality_label': self._score_to_label(score),
-            'confidence': self._estimate_confidence(score),
             'method': 'bert_finetuned'
         }
     
@@ -489,10 +477,6 @@ class ScoreAgent:
             return "poor"
         else:
             return "unacceptable"
-    
-    def _estimate_confidence(self, score: float) -> float:
-        confidence = 0.5 + abs(score - 0.5)
-        return round(min(confidence, 0.95), 3)
 
 
 @traceable(name="ScoreAgent", run_type="chain", tags=["agent", "score"])

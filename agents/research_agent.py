@@ -73,6 +73,12 @@ Write the summary in clear paragraphs. Do NOT call any more tools when producing
 def _format_observation(tool_name: str, tool_result) -> str:
     """Formatta l'observation per il log in modo leggibile e conciso."""
 
+    #ad esempio:
+    # RAG results:
+    #   [1] Title of Document 1 (Score: 0.95):
+    #       sdfgjdfngjdfngjdfngjgfnd 
+    #       .....................
+    # diventa solo il titolo e lo score
     if tool_name == "rag_search":
         result_str = str(tool_result)
         # Estrai solo i titoli dai risultati RAG
@@ -87,6 +93,9 @@ def _format_observation(tool_name: str, tool_result) -> str:
             return "RAG results:\n   " + "\n   ".join(title_lines)
         return result_str[:200]
 
+    # web search invece costruisce:
+    #   titolo
+    #   url
     elif tool_name == "web_search":
         if isinstance(tool_result, dict):
             results = tool_result.get('results', [])
@@ -208,6 +217,7 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
         clean_content = re.sub(r'<think>.*?</think>', '', raw_content, flags=re.DOTALL).strip()
 
         # Controlla se l'LLM ha deciso di terminare la ricerca
+        # Finisce quando pensa di avere abbastanza informazioni
         if not response.tool_calls:
             research_summary = clean_content
             print(f"\n📝 Final Answer:\n{research_summary}")
@@ -215,6 +225,7 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
             break
 
         # Genera una giustificazione dinamica se Ollama ha azzerato il testo (Native Tool Calling constraint)
+        # Praticamente e' solo un filler per mostrare un thought logico e contestuale, anche se l'LLM non lo ha generato
         if not thought_text and response.tool_calls:
             primary_tool = response.tool_calls[0]["name"]
             tool_args = response.tool_calls[0]["args"]
@@ -240,6 +251,7 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
                     result_str = str(tool_result)
 
                     # Raccogli sorgenti per il writer e per rag_add_documents
+                    # Serviranno al writer agent per citare le fonti ed evitare duplicati
                     if tool_name == "web_search" and isinstance(tool_result, dict):
                         for r in tool_result.get('results', []):
                             url = r.get('url', '')
