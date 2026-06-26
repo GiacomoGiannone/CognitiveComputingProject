@@ -127,7 +127,7 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
     quali tool chiamare durante la ricerca.
     """
     print("\n" + "=" * 50)
-    print("🔍 RESEARCH AGENT (ReAct) STARTING")
+    print(" RESEARCH AGENT (ReAct) STARTING")
     print("=" * 50)
 
     topic = state.get('current_topic')
@@ -135,9 +135,9 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
     blog_domain = state.get('blog_domain')
     extracted_topics = state.get('extracted_graph_topics', [])
 
-    print(f"📚 Current topic: '{topic}'")
-    print(f"📌 Blog domain: '{blog_domain}'")
-    print(f"🔧 Pre-extracted topics: {extracted_topics}")
+    print(f" Current topic: '{topic}'")
+    print(f" Blog domain: '{blog_domain}'")
+    print(f" Pre-extracted topics: {extracted_topics}")
 
     # ── Caso: nessun topic ──
     if not topic or topic == "None":
@@ -154,7 +154,7 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
     # ── Inizializza KG tool singleton se disponibile ──
     if kg_manager:
         get_kg_tool(kg_manager)
-        print("✅ Knowledge Graph tool initialized")
+        print(" Knowledge Graph tool initialized")
 
     # ── Setup LLM con tools (kg_search solo se KG disponibile) ──
     tools = [web_search, rag_search]
@@ -188,17 +188,17 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
     rag_docs_found = 0     # Contatore documenti RAG trovati
     kg_topics_found = 0    # Contatore topic KG trovati
 
-    print(f"\n🔄 Starting ReAct loop (max {max_iterations} iterations)...\n")
+    print(f"\n Starting ReAct loop (max {max_iterations} iterations)...\n")
 
     for iteration in range(max_iterations):
         print(f"\n{'─' * 50}")
-        print(f"🔄 Iteration {iteration + 1}/{max_iterations}")
+        print(f" Iteration {iteration + 1}/{max_iterations}")
         print(f"{'─' * 50}")
 
         try:
             response = llm_with_tools.invoke(messages)
         except Exception as e:
-            print(f"❌ LLM invocation error: {e}")
+            print(f" LLM invocation error: {e}")
             research_summary = f"LLM error during research: {str(e)}"
             break
 
@@ -220,8 +220,8 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
         # Finisce quando pensa di avere abbastanza informazioni
         if not response.tool_calls:
             research_summary = clean_content
-            print(f"\n📝 Final Answer:\n{research_summary}")
-            print(f"\n✅ ReAct loop completed early at iteration {iteration + 1}/{max_iterations} — LLM has enough information")
+            print(f"\n Final Answer:\n{research_summary}")
+            print(f"\n ReAct loop completed early at iteration {iteration + 1}/{max_iterations} — LLM has enough information")
             break
 
         # Genera una giustificazione dinamica se Ollama ha azzerato il testo (Native Tool Calling constraint)
@@ -234,7 +234,7 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
             thought_text = f"Analizzo lo stato della ricerca. Per approfondire il topic, decido di invocare lo strumento '{primary_tool}' con focus su: '{query_param}'."
 
         # THOUGHT: Mostra a schermo il vero pensiero logico o la giustificazione d'uso del tool
-        print(f"\n💭 Thought: {thought_text}")
+        print(f"\n Thought: {thought_text}")
 
         # ── ACTION + OBSERVATION per ogni tool call ──
         for tc in response.tool_calls:
@@ -292,13 +292,13 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
 
                     # Formatta observation in modo leggibile
                     formatted_obs = _format_observation(tool_name, tool_result)
-                    print(f"👁️ Observation: {formatted_obs}")
+                    print(f" Observation: {formatted_obs}")
                 else:
                     result_str = f"Error: tool '{tool_name}' not found."
-                    print(f"👁️ Observation: ❌ {result_str}")
+                    print(f" Observation: ❌ {result_str}")
             except Exception as e:
                 result_str = f"Tool execution error: {str(e)}"
-                print(f"👁️ Observation: ❌ {result_str}")
+                print(f" Observation: ❌ {result_str}")
 
             # Aggiungi il risultato come ToolMessage nella cronologia
             messages.append(ToolMessage(
@@ -308,7 +308,7 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
 
     else:
         # Max iterazioni raggiunte senza summary finale
-        print(f"\n⚠️ Max iterations ({max_iterations}) reached without final answer")
+        print(f"\n Max iterations ({max_iterations}) reached without final answer")
         # Prova a estrarre contenuto dall'ultima risposta
         if messages and hasattr(messages[-1], 'content') and messages[-1].content:
             raw = messages[-1].content
@@ -344,7 +344,7 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
             added = rag_add_documents(web_sources)
             print(f"💾 Post-loop: Added {added} chunks from {len(web_sources)} unique web sources to RAG store")
         except Exception as e:
-            print(f"⚠️ Could not add documents to RAG: {e}")
+            print(f" Could not add documents to RAG: {e}")
 
     # ── Risultato finale ──
     results = {
@@ -359,7 +359,7 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
         'error': False
     }
 
-    print(f"\n✅ Research complete:")
+    print(f"\n Research complete:")
     print(f"   - Total tool calls: {len(tool_calls_log)}")
     print(f"   - RAG documents retrieved: {rag_docs_found}")
     print(f"   - KG related topics found: {kg_topics_found}")

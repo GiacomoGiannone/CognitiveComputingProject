@@ -44,7 +44,7 @@ class LossLoggingCallback(TrainerCallback):
     def plot_losses(self, output_dir: str = None):
         """Genera e salva il grafico delle loss"""
         if not self.train_losses:
-            print("⚠️ Nessuna loss registrata durante il training.")
+            print(" Nessuna loss registrata durante il training.")
             return
         
         plt.figure(figsize=(14, 7))
@@ -110,7 +110,7 @@ class QualityRegressionDataset(Dataset):
         
         self.tokenizer = tokenizer
         self.max_length = max_length
-        print(f"📊 Caricati {len(self.samples)} sample da {data_path}")
+        print(f" Caricati {len(self.samples)} sample da {data_path}")
     
     def __len__(self):
         return len(self.samples)
@@ -196,9 +196,9 @@ class ScoreAgent:
             self._load_model(model_path)
         else:
             self.model = None
-            print("⚠️ Nessun modello fine-tunato trovato.")
+            print(" Nessun modello fine-tunato trovato.")
         
-        print(f"📊 ScoreAgent inizializzato su {self.device}")
+        print(f" ScoreAgent inizializzato su {self.device}")
     
     def _load_model(self, model_path: str):
         """Carica modello fine-tunato"""
@@ -210,17 +210,17 @@ class ScoreAgent:
         if os.path.exists(safetensors_path):
             from safetensors.torch import load_file
             state_dict = load_file(safetensors_path, device=self.device)
-            print("📂 Trovato modello in formato safetensors, caricamento in corso...")
+            print(" Trovato modello in formato safetensors, caricamento in corso...")
         elif os.path.exists(bin_path):
             state_dict = torch.load(bin_path, map_location=self.device)
-            print("📂 Trovato modello in formato PyTorch bin, caricamento in corso...")
+            print(" Trovato modello in formato PyTorch bin, caricamento in corso...")
         else:
             raise FileNotFoundError(f"Nessun file di pesi del modello trovato in {model_path}")
             
         self.model.load_state_dict(state_dict)
         self.model.to(self.device)
         self.model.eval()
-        print(f"✅ Modello caricato da {model_path}")
+        print(f" Modello caricato da {model_path}")
     
     def train(self, train_path: str, val_path: str = None, output_dir: str = "models/score_agent",
               epochs: int = 3, batch_size: int = 4, learning_rate: float = 2e-5,
@@ -299,7 +299,7 @@ class ScoreAgent:
         )
         
         # Training
-        print("\n🚀 Inizio training...")
+        print("\n Inizio training...")
         print(f"   Epochs: {epochs}")
         print(f"   Batch size: {batch_size}")
         print(f"   Learning rate: {learning_rate}")
@@ -314,19 +314,19 @@ class ScoreAgent:
         os.makedirs(output_dir, exist_ok=True)
         trainer.save_model(output_dir)
         self.tokenizer.save_pretrained(output_dir)
-        print(f"\n✅ Modello salvato in {output_dir}")
+        print(f"\n Modello salvato in {output_dir}")
         
         # Report finale
         if val_dataset:
             eval_results = trainer.evaluate()
-            print("\n📊 Risultati valutazione:")
+            print("\n Risultati valutazione:")
             print(f"   MSE: {eval_results.get('eval_mse', 'N/A'):.4f}")
             print(f"   MAE: {eval_results.get('eval_mae', 'N/A'):.4f}")
             print(f"   Accuracy within 0.1: {eval_results.get('eval_acc_within_0.1', 'N/A'):.2%}")
         
         # Plot della loss
         if plot_loss:
-            print("\n📈 Generazione grafico della loss...")
+            print("\n Generazione grafico della loss...")
             loss_callback.plot_losses(output_dir)
         
         print("="*60)
@@ -406,10 +406,10 @@ class ScoreAgent:
         Stampa comparazione tra score fallback e BERT
         """
         print("\n" + "="*60)
-        print("📊 QUALITY SCORE COMPARISON")
+        print(" QUALITY SCORE COMPARISON")
         print("="*60)
         
-        print(f"\n🔧 FALLBACK (euristica):")
+        print(f"\n FALLBACK (euristica):")
         print(f"   Score: {fallback['quality_score']}")
         print(f"   Label: {fallback['quality_label']}")
         if 'details' in fallback:
@@ -417,7 +417,7 @@ class ScoreAgent:
                   f"has_citations={fallback['details']['has_citations']}")
         
         if bert:
-            print(f"\n🤖 BERT (fine-tuned):")
+            print(f"\n BERT (fine-tuned):")
             print(f"   Score: {bert['quality_score']}")
             print(f"   Label: {bert['quality_label']}")
             
@@ -483,7 +483,7 @@ class ScoreAgent:
 def score_agent(state):
     """Integrazione nel workflow LangGraph"""
     print("\n" + "="*50)
-    print("🎯 SCORE AGENT - Quality Assessment")
+    print(" SCORE AGENT - Quality Assessment")
     print("="*50)
     
     model_path = "models/score_agent"
@@ -493,27 +493,32 @@ def score_agent(state):
     if os.path.exists(model_path) and (os.path.exists(bin_path) or os.path.exists(safetensors_path)):
         scorer = ScoreAgent(model_path=model_path)
     else:
-        print("⚠️ Modello non trovato, uso fallback euristico")
+        print(" Modello non trovato, uso fallback euristico")
         scorer = ScoreAgent()
     
     draft = state.get('draft_post', {})
     content = draft.get('content', '')
     
     if not content:
-        print("⚠️ Nessun contenuto da valutare")
+        print(" Nessun contenuto da valutare")
         return {'quality_evaluation': {'quality_score': 0.5}, 'quality_passed': True}
     
     # Ora stampa ENTRAMBI gli score (fallback + BERT)
     evaluation = scorer.score(content, print_comparison=True)
     
-    print(f"\n✅ Final decision (using: {evaluation['method']})")
+    print(f"\n Final decision (using: {evaluation['method']})")
     print(f"   Score: {evaluation['quality_score']}")
     print(f"   Label: {evaluation['quality_label']}")
     
-    quality_passed = evaluation['quality_score'] >= 0.4
+    threshold = 0.70
+    quality_passed = evaluation['quality_score'] >= threshold
+    barely_passed = evaluation['quality_score'] >= 0.60 and evaluation['quality_score'] < threshold
     
     if not quality_passed:
-        print(f"\n⚠️ Qualità insufficiente (score < 0.4), richiesta rigenerazione...")
+        print(f"\n Qualità insufficiente (score < {threshold}), richiesta rigenerazione...")
+
+    elif barely_passed:
+        print(f"\n Qualità appena sufficiente (score tra 0.60 e {threshold}), considerare revisione umana...")
     
     print("="*50)
     

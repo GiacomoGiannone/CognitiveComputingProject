@@ -86,14 +86,14 @@ def writer_agent(state):
     """Writer agent - scrive il post basato sulla ricerca"""
     
     print("\n" + "="*50)
-    print("✍️ WRITER AGENT STARTING")
+    print(" WRITER AGENT STARTING")
     print("="*50)
     
     topic = state.get('current_topic')
     research = state.get('research_results', {})
     
-    print(f"📝 Topic: {topic}")
-    print(f"📚 Sources available: {research.get('num_sources', 0)}")
+    print(f" Topic: {topic}")
+    print(f" Sources available: {research.get('num_sources', 0)}")
     
     # Se c'è un errore nella ricerca
     if research.get('error'):
@@ -216,7 +216,7 @@ Write the complete post now:
         }
     }
     
-    print(f"✅ Post generated: '{title}'")
+    print(f" Post generated: '{title}'")
     print("="*50)
     
     return post

@@ -16,23 +16,23 @@ class HumanReviewAgent:
         """Presenta il post per review umana"""
         
         print("\n" + "="*60)
-        print("📝 POST READY FOR REVIEW")
+        print(" POST READY FOR REVIEW")
         print("="*60)
-        print(f"\n📌 TITLE: {post.get('title', 'No title')}")
+        print(f"\n TITLE: {post.get('title', 'No title')}")
         
-        # Mostra solo anteprima se troppo lungo
+        # Prendi il content e mostra solo anteprima se troppo lungo
         content = post.get('content', 'No content')
         #preview = content[:800] + "..." if len(content) > 800 else content
-        print(f"\n📖 CONTENT PREVIEW:\n{content}")
+        print(f"\n CONTENT PREVIEW:\n{content}")
         
         sources = post.get('sources', [])
-        print(f"\n🔗 SOURCES: {len(sources)} sources")
+        print(f"\n SOURCES: {len(sources)} sources")
         
         if fact_check_results:
-            print(f"\n✅ FACT CHECK: {fact_check_results.get('claims_checked', 0)} claims checked")
+            print(f"\n FACT CHECK: {fact_check_results.get('claims_checked', 0)} claims checked")
             if fact_check_results.get('issues_found'):
-                print(f"⚠️ ISSUES FOUND: {fact_check_results['issues_found']}")
-                print(f"💡 SUGGESTIONS: {fact_check_results.get('suggestions', '')[:500]}")
+                print(f" ISSUES FOUND: {fact_check_results['issues_found']}")
+                print(f" SUGGESTIONS: {fact_check_results.get('suggestions', '')[:500]}")
         
         print("\n" + "="*60)
         print("Options:")
@@ -99,9 +99,9 @@ def human_review_agent(state):
                     extracted_topics = state.get('extracted_graph_topics', [])  
                     
                     print("\n" + "="*60)
-                    print("🔍 Saving to Knowledge Graph")
+                    print(" Saving to Knowledge Graph")
                     print("="*60)
-                    print(f"📌 Post title: {post_title}")
+                    print(f" Post title: {post_title}")
                     print(f"   - Using pre-extracted topics: {extracted_topics}")  
                     print("="*60)
                     
@@ -124,16 +124,16 @@ def human_review_agent(state):
                         sources=source_urls,
                         claims=extracted_claims
                     )
-                    print(f"\n✅ Post saved to Knowledge Graph")
+                    print(f"\n Post saved to Knowledge Graph")
                     if extracted_claims:
-                        print(f"   📋 {len(extracted_claims)} claims saved as Claim nodes")
+                        print(f"    {len(extracted_claims)} claims saved as Claim nodes")
                     
                     # CREAZIONE RELAZIONI TRA TOPIC
-                    print(f"\n🔗 Creating Topic Relations...")
+                    print(f"\n Creating Topic Relations...")
                     try:
                         # Recupera i topic storici già nel grafo
                         all_existing_topics = kg.get_covered_topics()
-                        print(f"   📊 Looking for related topics")
+                        print(f"    Looking for related topics")
                         
                         if all_existing_topics and extracted_topics:
                             # Chiedi all'LLM di valutare relazioni semantiche
@@ -167,26 +167,26 @@ def human_review_agent(state):
                                 if json_match:
                                     relations = json.loads(json_match.group())
                             except (json.JSONDecodeError, AttributeError) as e:
-                                print(f"   ⚠️ Could not parse relations JSON: {e}")
+                                print(f"    Could not parse relations JSON: {e}")
                             
                             # Crea le relazioni tra Topic nel grafo
                             if relations:
-                                print(f"   ✅ Found {len(relations)} relations to create:")
+                                print(f"    Found {len(relations)} relations to create:")
                                 for topic1, topic2 in relations:
                                     try:
                                         kg.add_topic_relation(topic1, topic2, "RELATED_TO")
-                                        print(f"      🔗 {topic1} <-> {topic2}")
+                                        print(f"       {topic1} <-> {topic2}")
                                     except Exception as rel_err:
-                                        print(f"      ⚠️ Could not create relation: {rel_err}")
+                                        print(f"       Could not create relation: {rel_err}")
                             else:
-                                print(f"   ℹ️ No semantic relations found")
+                                print(f"    No semantic relations found")
                             
                             # CONNESSIONE POST → TOPIC ESISTENTI
                             # Identifica i topic esistenti coinvolti nelle relazioni trovate
                             # e collega il Post direttamente a quei topic
-                            existing_set = set(all_existing_topics)
-                            new_set = set(extracted_topics)
-                            connected_existing = set()
+                            existing_set = set(all_existing_topics) #topic già presenti nel grafo
+                            new_set = set(extracted_topics) #topic che bisogna salvare nel grafo
+                            connected_existing = set() 
                             
                             for pair in relations:
                                 if len(pair) == 2:
@@ -197,28 +197,28 @@ def human_review_agent(state):
                                             connected_existing.add(t)
                             
                             if connected_existing and post_id:
-                                print(f"\n   📌 Connecting Post to {len(connected_existing)} existing topics:")
+                                print(f"\n    Connecting Post to {len(connected_existing)} existing topics:")
                                 for existing_topic in sorted(connected_existing):
                                     try:
                                         kg.connect_post_to_topic(post_id, existing_topic, "COVERS")
-                                        print(f"      📎 Post → COVERS → {existing_topic}")
+                                        print(f"       Post → COVERS → {existing_topic}")
                                     except Exception as conn_err:
-                                        print(f"      ⚠️ Could not connect post to '{existing_topic}': {conn_err}")
+                                        print(f"       Could not connect post to '{existing_topic}': {conn_err}")
                             else:
-                                print(f"\n   ℹ️ No existing topics to connect the post to")
+                                print(f"\n    No existing topics to connect the post to")
                         else:
-                            print(f"   ℹ️ Not enough topics to establish relations")
+                            print(f"    Not enough topics to establish relations")
                     except Exception as rel_err:
-                        print(f"   ⚠️ Relation creation error: {rel_err}")
+                        print(f"   Relation creation error: {rel_err}")
             except Exception as e:
-                print(f"\n⚠️ Could not save to KG: {e}")
+                print(f"\n   Could not save to KG: {e}")
         
         # Aggiorna il piano editoriale
         try:
             from agents.plan_updater import update_plan_after_post
             state = update_plan_after_post(state)
         except Exception as e:
-            print(f"⚠️ Could not update plan: {e}")
+            print(f" Could not update plan: {e}")
         
         return {
             'review_action': 'approved',

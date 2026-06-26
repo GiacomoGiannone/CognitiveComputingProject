@@ -12,7 +12,7 @@ def update_plan_after_post(state):
     """
     
     print("\n" + "="*50)
-    print("📝 PLAN UPDATER - Marking topic as completed")
+    print(" PLAN UPDATER - Marking topic as completed")
     print("="*50)
     
     memory_path = os.path.abspath(
@@ -23,7 +23,7 @@ def update_plan_after_post(state):
     final_post = state.get('final_post', {})
     
     if not completed_topic:
-        print("⚠️ No topic to mark as completed")
+        print(" No topic to mark as completed")
         return state
     
     # Carica memoria
@@ -31,7 +31,7 @@ def update_plan_after_post(state):
         with open(memory_path, "r", encoding="utf-8") as f:
             memory = json.load(f)
     except:
-        print("⚠️ Could not load memory")
+        print(" No topic to mark as completed")
         return state
     
     # Trova il piano attivo e marca il topic come finito
@@ -51,7 +51,7 @@ def update_plan_after_post(state):
                 topic_item["finished"] = True
                 topic_item["finished_at"] = now_iso
                 plan["last_topic_index"] = topic_idx
-                print(f"✅ Marked topic as completed: {completed_topic}")
+                print(f" Marked topic as completed: {completed_topic}")
                 updated = True
                 
                 # Verifica se tutti i topic sono finiti
@@ -59,7 +59,7 @@ def update_plan_after_post(state):
                 if all_finished:
                     plan["finished"] = True
                     plan["finished_at"] = now_iso
-                    print(f"🎉 Plan {plan_idx + 1} is now COMPLETE!")
+                    print(f" Plan {plan_idx + 1} is now COMPLETE!")
                 break
         
         if updated:
@@ -69,9 +69,9 @@ def update_plan_after_post(state):
         # Salva memoria aggiornata
         with open(memory_path, "w", encoding="utf-8") as f:
             json.dump(memory, f, indent=2, ensure_ascii=False)
-        print(f"💾 Updated memory saved")
+        print(f" Updated memory saved")
     else:
-        print(f"⚠️ Topic '{completed_topic}' not found in active plan")
+        print(f" No topic to mark as completed")
     
     print("="*50)
     

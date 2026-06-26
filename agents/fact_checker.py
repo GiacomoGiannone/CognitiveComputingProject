@@ -52,10 +52,10 @@ class FactCheckAgent:
                 claims = json.loads(json_str)
             else:
                 # Fallback on splitting lines if no JSON block is found
-                print(f"   ⚠️ No JSON list found in response, falling back to line splitting")
+                print(f"    No JSON list found in response, falling back to line splitting")
                 claims = [c.strip() for c in response.split('\n') if c.strip()]
         except Exception as e:
-            print(f"   ⚠️ Claim extraction parse error: {e}, falling back to line splitting")
+            print(f"    Claim extraction parse error: {e}, falling back to line splitting")
             claims = [c.strip() for c in response.split('\n') if c.strip()]
             
         # Pulisci claims (rimuovi righe vuote o introduttive)
@@ -120,11 +120,11 @@ class FactCheckAgent:
                 json_str = json_match.group(0)
                 verification_data = json.loads(json_str)
             else:
-                print(f"   ⚠️ No JSON block found in response")
+                print(f"    No JSON block found in response")
         except json.JSONDecodeError as e:
-            print(f"   ⚠️ JSON parse error: {e}")
+            print(f"    JSON parse error: {e}")
         except Exception as e:
-            print(f"   ⚠️ Verification parse error: {e}")
+            print(f"    Verification parse error: {e}")
         
         return {
             'claim': claim,
@@ -136,7 +136,7 @@ class FactCheckAgent:
     def fact_check_post(self, post_content: str) -> Dict:
         """Fact-check completo del post"""
         claims = self.extract_claims(post_content)
-        print(f"\n📋 Extracted {len(claims)} claims to verify")
+        print(f"\n Extracted {len(claims)} claims to verify")
         
         verified_claims = []
         issues_found = []
@@ -151,17 +151,17 @@ class FactCheckAgent:
             confidence = result['verification'].get('confidence', 0)
             
             if is_supported is False:
-                print(f"       ❌ NOT SUPPORTED (confidence: {confidence}%)")
+                print(f"        NOT SUPPORTED (confidence: {confidence}%)")
                 issues_found.append(claim)
             elif is_supported is True:
-                print(f"       ✅ SUPPORTED (confidence: {confidence}%)")
+                print(f"        SUPPORTED (confidence: {confidence}%)")
             else:
-                print(f"       ⚠️ UNCLEAR (parse error)")
+                print(f"        UNCLEAR (parse error)")
         
         # Genera suggerimenti
         suggestions = ""
         if issues_found:
-            print(f"\n⚠️ Found {len(issues_found)} unsupported claims, generating suggestions...")
+            print(f"\n Found {len(issues_found)} unsupported claims, generating suggestions...")
             suggestions_prompt = f"""
             Based on fact-checking results:
             
@@ -172,9 +172,9 @@ class FactCheckAgent:
             """
             
             suggestions = self._chat(suggestions_prompt)
-            print(f"✅ Suggestions generated: {suggestions}")
+            print(f" Suggestions generated: {suggestions}")
         else:
-            print(f"\n✅ All claims verified successfully!")
+            print(f"\n All claims verified successfully!")
         
         return {
             'claims_checked': len(claims),
@@ -198,7 +198,7 @@ def fact_check_agent(state):
     content = draft.get('content', '') if isinstance(draft, dict) else draft
     
     if not content:
-        print("⚠️ No content to fact-check")
+        print(" No content to fact-check")
         return {
             'fact_check_passed': True,
             'fact_check_results': {'claims_checked': 0, 'issues_found': [], 'suggestions': '', 'detailed_results': []},
@@ -208,7 +208,7 @@ def fact_check_agent(state):
     fact_check_result = checker.fact_check_post(content)
     
     print(f"\n" + "="*60)
-    print(f"📊 FACT CHECK SUMMARY")
+    print(f" FACT CHECK SUMMARY")
     print(f"   - Claims checked: {fact_check_result['claims_checked']}")
     print(f"   - Issues found: {len(fact_check_result['issues_found'])}")
     print(f"   - Fact check passed: {len(fact_check_result['issues_found']) == 0}")

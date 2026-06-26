@@ -188,9 +188,6 @@ class Neo4jManager:
         """
         try:
             
-            # Estrai topic dalla query (semplificato)
-            # In produzione, usare NER o keyword extraction
-            
             # Cerca topic correlati nel KG
             # prima cerchiamo topic correlati alla query, confrontando la query con i nomi dei topic
             # poi troviamo i topic correlati a quei topic

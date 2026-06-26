@@ -75,12 +75,12 @@ def planner_agent(state):
         if not plan.get("finished", False):
             active_plan = plan
             active_plan_idx = idx
-            print(f"📋 Found active plan (index {idx})")
+            print(f" Found active plan (index {idx})")
             break
     
     # Se non c'è piano attivo, creane uno nuovo
     if active_plan is None:
-        print("📋 No active plan found, creating new plan...")
+        print(" No active plan found, creating new plan...")
         
         #  Recupera SOLO i topic coperti di recente (nell'ultimo giorno)
         covered_topics = []
@@ -88,9 +88,9 @@ def planner_agent(state):
         if kg:
             try:
                 covered_topics = kg.get_recently_covered_topics(days=1)
-                print(f"⏰ Topics covered in LAST 24 HOURS (cooldown): {covered_topics}")
+                print(f" Topics covered in LAST 24 HOURS (cooldown): {covered_topics}")
             except Exception as e:
-                print(f"⚠️ Could not query KG: {e}")
+                print(f" No topic to mark as completed")
         
         # Raccolgi tutti i topic già usati
         previous_topics = set(covered_topics)
@@ -100,6 +100,7 @@ def planner_agent(state):
                     previous_topics.add(topic_item.get("topic"))
         
         avoid_list = previous_topics
+        #crea una stringa con i topic da evitare per il prompt
         avoid_text = ", ".join(sorted(avoid_list)) if avoid_list else "None"
         
         prompt = f"""
@@ -140,6 +141,8 @@ def planner_agent(state):
             #come mai lo facciamo? Perché a volte il modello può generare testo extra prima o dopo l'oggetto JSON, 
             #quindi cerchiamo di estrarre solo l'oggetto JSON valido
             #ne facciamo due tentativi: prima cerchiamo il primo match non greedy, se non lo troviamo, cerchiamo l'ultimo match greedy
+            #il match greedy prende tutto il contenuto tra la prima e l'ultima parentesi graffa, quindi potrebbe includere testo extra, ma almeno ci dà un oggetto JSON valido
+            #il match non greedy e' intelligente perché prende solo il primo oggetto JSON, ma se il modello genera testo extra prima o dopo, potrebbe non funzionare
             match = re.search(r'\{.*?\}', content, re.DOTALL)
             if not match:
                 match = re.search(r'\{.*\}', content, re.DOTALL)
@@ -233,7 +236,7 @@ def planner_agent(state):
     # Verifica se il piano è completo
     if next_index >= len(topics_list):
         # Piano completato! Marca come finished e cerca un nuovo piano
-        print(f"\n✅ Plan completed! Marking as finished.")
+        print(f"\n Plan completed! Marking as finished.")
         active_plan["finished"] = True
         active_plan["finished_at"] = datetime.utcnow().isoformat() + "Z"
         save_memory(memory_path, memory)
@@ -259,18 +262,18 @@ def planner_agent(state):
     print(f"   Next index: {next_index}")
     print(f"   Total topics: {len(topics_list)}")
     
-    print(f"\n🗂️ Topics in plan:")
+    print(f"\n Topics in plan:")
     for idx, topic_item in enumerate(topics_list):
         if idx < next_index:
-            status = "✅ DONE"
+            status = " DONE"
         elif idx == next_index:
-            status = "🎯 CURRENT"
+            status = " CURRENT"
         else:
-            status = "⏳ PENDING"
+            status = " PENDING"
         print(f"   {status}: {topic_item.get('topic')}")
     
     editorial_plan = f"""
-    📅 EDITORIAL PLAN for {domain}:
+     EDITORIAL PLAN for {domain}:
     
     Current post ({next_index + 1}/{len(topics_list)}): {current_topic}
     Remaining topics: {', '.join(remaining_topics[1:5]) if len(remaining_topics) > 1 else 'None'}
@@ -278,14 +281,14 @@ def planner_agent(state):
     Justification: {active_plan.get('justification', 'Sequential order based on plan creation.')}
     """
     
-    print(f"\n✅ Selected topic for research: {current_topic}")
+    print(f"\n Selected topic for research: {current_topic}")
     print("="*50)
     
     # Estrai i topic generici dal titolo specifico
     print(f"\n🔧 Extracting generic topics for Knowledge Graph...")
     domain = state.get('blog_domain')
     extracted_topics = extract_topics_from_title(current_topic, domain)
-    #print(f"✅ Generic topics extracted: {extracted_topics}")
+    #print(f" Generic topics extracted: {extracted_topics}")
     
     return {
         "editorial_plan": editorial_plan,
