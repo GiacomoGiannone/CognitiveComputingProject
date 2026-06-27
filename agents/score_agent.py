@@ -269,7 +269,7 @@ class ScoreAgent:
                 'acc_within_0.1': acc_within_01
             }
         
-        # Configurazione training - FIX: usa lista vuota invece di None
+        # Configurazione training
         training_args = TrainingArguments(
             output_dir=output_dir,
             num_train_epochs=epochs,
@@ -285,7 +285,7 @@ class ScoreAgent:
             metric_for_best_model="mse",
             greater_is_better=False,
             learning_rate=learning_rate,
-            report_to=[],  # FIX: lista vuota invece di None
+            report_to=[],
         )
         
         # Trainer

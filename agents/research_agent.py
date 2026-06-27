@@ -20,12 +20,13 @@ from typing import Dict, Any
 RESEARCH_SYSTEM_PROMPT = """You are an expert Research Agent following the ReAct paradigm (Thought → Action → Observation).
 Your goal is to gather comprehensive, accurate, and diverse information about a given topic to support writing a high-quality blog post.
 
-CRITICAL RULE — ALWAYS THINK BEFORE ACTING:
-Before EVERY tool call, you MUST write a brief "Thought:" explaining:
+REASONING GUIDELINES:
+Use your internal reasoning (thinking) to plan each step of the research.
+Before every tool call, reason about:
 - What information you still need
-- Why you chose this specific tool and query
+- Why you are choosing this specific tool and query
 - How this fits your overall research strategy
-Never call a tool without explaining your reasoning first.
+Your reasoning will be captured automatically — just think naturally about the best next step.
 
 You have access to the following tools:
 
@@ -44,10 +45,12 @@ STRATEGY:
    or the web, incorporate the related topics from the KG into your search queries to get 
    broader and more relevant results.
 3. Search the RAG store (rag_search) using both the original topic AND the KG-expanded terms.
-4. Search the web (web_search) to fill gaps, using KG-related topics to diversify your queries.
+4. MANDATORY: You MUST use web_search at least once, even if RAG results seem sufficient.
+   RAG results may be outdated, incomplete, or lack recent developments.
+   Web search brings fresh perspectives, current data, and new sources that enrich the blog post.
 5. You may call tools multiple times with different queries if needed.
-6. When you have gathered enough information (key facts, practical tips, broader context), 
-   stop calling tools and provide your final research summary.
+6. You may ONLY produce the final summary AFTER having used web_search at least once.
+   If you have only used rag_search and/or kg_search, you are NOT done yet — search the web.
 
 EXAMPLE of KG-expanded research:
 - Topic: "Preparazione fisica per il nuoto"
@@ -162,7 +165,7 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
         tools.append(kg_search)
     tool_map = {t.name: t for t in tools}
 
-    llm = ChatOllama(model="qwen3", temperature=0)
+    llm = ChatOllama(model="qwen3", temperature=0, reasoning=True)
     llm_with_tools = llm.bind_tools(tools)
 
     print(f"🤖 LLM: qwen3 with {len(tools)} tools bound: {list(tool_map.keys())}")
@@ -206,35 +209,32 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
 
         raw_content = response.content or ""
 
-        # Tenta di estrarre il pensiero dai tag nativi <think> prima di pulire la stringa
-        think_match = re.search(r'<think>(.*?)</think>', raw_content, re.DOTALL)
-        if think_match:
-            thought_text = think_match.group(1).strip()
-        else:
-            thought_text = raw_content.strip()
+        # ── Estrai il THOUGHT dal reasoning nativo di qwen3 ──
+        # Con reasoning=True, Ollama restituisce il pensiero in additional_kwargs['reasoning_content']
+        # invece che nei tag <think> dentro content (che viene svuotato durante il tool calling)
+        thought_text = response.additional_kwargs.get('reasoning_content', '').strip()
 
-        # Pulisci il contenuto rimuovendo i tag per i controlli successivi (es. Final Answer)
+        # Fallback: se reasoning_content è vuoto, prova i tag <think> nel content
+        if not thought_text:
+            think_match = re.search(r'<think>(.*?)</think>', raw_content, re.DOTALL)
+            if think_match:
+                thought_text = think_match.group(1).strip()
+
+        # Pulisci il contenuto rimuovendo eventuali tag <think> residui
         clean_content = re.sub(r'<think>.*?</think>', '', raw_content, flags=re.DOTALL).strip()
 
-        # Controlla se l'LLM ha deciso di terminare la ricerca
-        # Finisce quando pensa di avere abbastanza informazioni
+        # Controlla se l'LLM ha deciso di terminare la ricerca (nessun tool call)
         if not response.tool_calls:
             research_summary = clean_content
             print(f"\n Final Answer:\n{research_summary}")
             print(f"\n ReAct loop completed early at iteration {iteration + 1}/{max_iterations} — LLM has enough information")
             break
 
-        # Genera una giustificazione dinamica se Ollama ha azzerato il testo (Native Tool Calling constraint)
-        # Praticamente e' solo un filler per mostrare un thought logico e contestuale, anche se l'LLM non lo ha generato
-        if not thought_text and response.tool_calls:
-            primary_tool = response.tool_calls[0]["name"]
-            tool_args = response.tool_calls[0]["args"]
-            # Estraiamo la query per rendere il thought altamente specifico e contestuale
-            query_param = tool_args.get("query") or tool_args.get("topic") or ""
-            thought_text = f"Analizzo lo stato della ricerca. Per approfondire il topic, decido di invocare lo strumento '{primary_tool}' con focus su: '{query_param}'."
-
-        # THOUGHT: Mostra a schermo il vero pensiero logico o la giustificazione d'uso del tool
-        print(f"\n Thought: {thought_text}")
+        # THOUGHT: Mostra il vero pensiero dell'LLM
+        if thought_text:
+            print(f"\n💭 Thought: {thought_text}")
+        else:
+            print(f"\n💭 Thought: (nessun reasoning restituito dal modello)")
 
         # ── ACTION + OBSERVATION per ogni tool call ──
         for tc in response.tool_calls:
