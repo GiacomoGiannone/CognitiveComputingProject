@@ -26,12 +26,16 @@ class BlogState(TypedDict, total=False):
     fact_check_passed: bool
     fact_check_results: Dict[str, Any]
 
+    # Evaluation
+    quality_evaluation: Dict[str, Any]
+    quality_passed: bool
+    barely_passed: bool
+
     # Human review + control flow
     review_action: str
     modification_feedback: str
     final_post: Dict[str, Any]
     requires_regeneration: bool
-    barely_passed: bool
     requires_research: bool
     iteration: int
     max_iterations: int

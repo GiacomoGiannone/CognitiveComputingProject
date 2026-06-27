@@ -171,7 +171,43 @@ Content:
 ---
 """
     
-    prompt = f"""
+    # Controlla se è stata richiesta una modifica dall'utente
+    review_action = state.get('review_action')
+    feedback = state.get('modification_feedback')
+    previous_post = state.get('draft_post', {}).get('content')
+
+    if review_action == 'modify_requested' and feedback and previous_post:
+        print(f" Applying user modification feedback: '{feedback}'")
+        prompt = f"""
+Write a helpful, informative blog post about: "{topic}"
+
+BASED ON THESE SOURCES:
+{sources_text}
+
+RESEARCH SUMMARY:
+{research.get('research_summary', '')}
+
+USER FEEDBACK FOR MODIFICATION:
+We generated a previous version of this post, but the user requested changes.
+Please revise the draft below, applying this feedback:
+"{feedback}"
+
+PREVIOUS DRAFT:
+{previous_post}
+
+REQUIREMENTS:
+1. Address the user's feedback precisely
+2. Write approx 5000 words
+3. Use a friendly, expert tone
+4. Include practical advice or actionable tips
+5. Cite sources inline like [Source: Title]
+6. End with a conclusion
+7. Start with '# Title' on first line
+
+Write the revised complete post now:
+"""
+    else:
+        prompt = f"""
 Write a helpful, informative blog post about: "{topic}"
 
 BASED ON THESE SOURCES:
@@ -213,7 +249,9 @@ Write the complete post now:
             "topic": topic,
             "sources": research.get('sources', []),
             "error": False
-        }
+        },
+        "review_action": "",
+        "modification_feedback": ""
     }
     
     print(f" Post generated: '{title}'")
