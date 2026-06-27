@@ -34,6 +34,19 @@ class HumanReviewAgent:
                 print(f" ISSUES FOUND: {fact_check_results['issues_found']}")
                 print(f" SUGGESTIONS: {fact_check_results.get('suggestions', '')[:500]}")
         
+        if state:
+            quality_passed = state.get('quality_passed', True)
+            barely_passed = state.get('barely_passed', False)
+            threshold = 0.70
+            print("\n\n============================================================")
+            print("Now evaluate whether to publish, modify or regenerate the post\nYou can rely on the quality metric computed before by the score agent to make your decision:")
+            if quality_passed:
+                print(f"\n ✅ Good quality (score >= {threshold}), recommended to publish.")
+            elif not quality_passed:
+                print(f"\n ❌ Insufficient quality (score < {threshold}), recommended to regenerate!")
+            elif barely_passed:
+                print(f"\n ⚠️ Marginal quality (score between 0.60 and {threshold}), consider human revision...")
+
         print("\n" + "="*60)
         print("Options:")
         print("1. APPROVE - Publish as is")

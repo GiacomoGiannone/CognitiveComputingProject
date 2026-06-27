@@ -54,6 +54,7 @@ def main():
         "iteration": 0,
         "max_iterations": 2,
         "requires_regeneration": False,
+        "barely_passed": False,
         "requires_research": False,
         "editorial_plan": "",
         "research_results": {},

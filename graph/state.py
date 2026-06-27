@@ -31,6 +31,7 @@ class BlogState(TypedDict, total=False):
     modification_feedback: str
     final_post: Dict[str, Any]
     requires_regeneration: bool
+    barely_passed: bool
     requires_research: bool
     iteration: int
     max_iterations: int

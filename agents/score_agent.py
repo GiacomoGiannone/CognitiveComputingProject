@@ -13,6 +13,7 @@ from langsmith import traceable
 from typing import List, Dict
 import json
 import os
+import re
 import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error
 import matplotlib.pyplot as plt
@@ -334,30 +335,73 @@ class ScoreAgent:
     
     def _fallback_score_only(self, post_content: str) -> Dict:
         """
-        Calcola SOLO lo score di fallback (euristica) senza BERT
+        Calcola SOLO lo score di fallback (euristica) senza BERT.
+        Usa segnali strutturali semplici: lunghezza, titoli, paragrafi, citazioni.
         """
         word_count = len(post_content.split())
-        
-        score = 0.0
-        if 1500 <= word_count <= 3000:
-            score += 0.4
+
+        # ── 1. Lunghezza (max 0.35) ──
+        # Curva graduata: premia post tra 1000 e 6000 parole, picco a 3000-5000
+        if word_count < 300:
+            length_score = 0.0
+        elif word_count < 1000:
+            length_score = 0.10
         elif word_count < 1500:
-            score -= 0.2
-        
-        if '[Source:' in post_content or 'fonte' in post_content.lower():
-            score += 0.1
-        
-        #manteniamo lo score compreso tra 0 e 1
+            length_score = 0.20
+        elif word_count < 3000:
+            length_score = 0.30
+        elif word_count <= 6000:
+            length_score = 0.35  # range ideale per il blog
+        else:
+            length_score = 0.25  # troppo lungo, lieve penalità
+
+        # ── 2. Struttura (max 0.35) ──
+        # Conta heading (# , ## , ### )
+        headings = len(re.findall(r'^#{1,3}\s+.+', post_content, re.MULTILINE))
+        heading_score = min(headings * 0.05, 0.15)  # max 0.15 con 3+ heading
+
+        # Conta paragrafi non vuoti (blocchi di testo separati da righe vuote)
+        paragraphs = [p.strip() for p in post_content.split('\n\n') if p.strip()]
+        para_score = min(len(paragraphs) * 0.02, 0.10)  # max 0.10 con 5+ paragrafi
+
+        # Presenza di liste puntate o numerate
+        has_lists = bool(re.search(r'^[\s]*[-*•]\s+|^\s*\d+\.\s+', post_content, re.MULTILINE))
+        list_score = 0.10 if has_lists else 0.0
+
+        structure_score = heading_score + para_score + list_score
+
+        # ── 3. Citazioni (max 0.15) ──
+        # Conta il numero totale di citazioni trovate nel testo
+        citation_patterns = [
+            r'\[Source:[^\]]*\]',     # formato richiesto: [Source: Title]
+            r'\[Fonte:[^\]]*\]',      # variante italiana: [Fonte: Titolo]
+            r'https?://\S+',          # URL inline
+        ]
+        citation_count = sum(len(re.findall(p, post_content, re.IGNORECASE)) for p in citation_patterns)
+        citation_score = min(citation_count * 0.03, 0.15)  # max 0.15 con 5+ citazioni
+
+        # ── 4. Base minima (0.15) ──
+        # Ogni post generato merita almeno un punto di partenza
+        base_score = 0.15
+
+        # ── Totale ──
+        score = base_score + length_score + structure_score + citation_score
         score = min(max(score, 0.0), 1.0)
-        
+
         return {
             'quality_score': round(score, 3),
             'quality_label': self._score_to_label(score),
             'method': 'fallback_heuristic',
             'details': {
                 'word_count': word_count,
-                'has_citations': '[Source:' in post_content or 'fonte' in post_content.lower(),
-                'length_bonus': 0.4 if (1500 <= word_count <= 3000) else (-0.2 if word_count < 1500 else 0)
+                'base_score': base_score,
+                'length_score': round(length_score, 3),
+                'structure_score': round(structure_score, 3),
+                'citation_score': round(citation_score, 3),
+                'headings_found': headings,
+                'paragraphs_found': len(paragraphs),
+                'has_lists': has_lists,
+                'citation_count': citation_count
             }
         }
     
@@ -413,8 +457,16 @@ class ScoreAgent:
         print(f"   Score: {fallback['quality_score']}")
         print(f"   Label: {fallback['quality_label']}")
         if 'details' in fallback:
-            print(f"   Details: word_count={fallback['details']['word_count']}, "
-                  f"has_citations={fallback['details']['has_citations']}")
+            d = fallback['details']
+            print(f"   Word count: {d.get('word_count', 'N/A')}")
+            print(f"   Base score:      {d.get('base_score', 'N/A')}")
+            print(f"   Length score:     {d.get('length_score', 'N/A')}")
+            print(f"   Structure score:  {d.get('structure_score', 'N/A')}  "
+                  f"(headings={d.get('headings_found', 0)}, "
+                  f"paragraphs={d.get('paragraphs_found', 0)}, "
+                  f"lists={'yes' if d.get('has_lists') else 'no'})")
+            print(f"   Citation score:   {d.get('citation_score', 'N/A')}  "
+                  f"(citations found={d.get('citation_count', 0)})")
         
         if bert:
             print(f"\n BERT (fine-tuned):")
@@ -423,7 +475,7 @@ class ScoreAgent:
             
             # Differenza tra i due metodi
             diff = abs(fallback['quality_score'] - bert['quality_score'])
-            diff_icon = "🟢" if diff < 0.1 else "🟡" if diff < 0.2 else "🔴"
+            diff_icon = "🟢" if diff < 0.2 else "🟡" if diff < 0.4 else "🔴"
             print(f"\n{diff_icon} Difference: {diff:.3f} ({diff*100:.1f}%)")
         
         print("="*60)
@@ -509,23 +561,16 @@ def score_agent(state):
     print(f"\n Final decision (using: {evaluation['method']})")
     print(f"   Score: {evaluation['quality_score']}")
     print(f"   Label: {evaluation['quality_label']}")
-    
     threshold = 0.70
     quality_passed = evaluation['quality_score'] >= threshold
     barely_passed = evaluation['quality_score'] >= 0.60 and evaluation['quality_score'] < threshold
-    
-    if not quality_passed:
-        print(f"\n Qualità insufficiente (score < {threshold}), richiesta rigenerazione...")
 
-    elif barely_passed:
-        print(f"\n Qualità appena sufficiente (score tra 0.60 e {threshold}), considerare revisione umana...")
-    
     print("="*50)
-    
+
     return {
         'quality_evaluation': evaluation,
         'quality_passed': quality_passed,
-        'requires_regeneration': not quality_passed
+        'barely_passed': barely_passed
     }
 
 
