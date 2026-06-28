@@ -10,9 +10,7 @@ from agents.fact_checker import fact_check_agent
 from agents.human_review import human_review_agent
 from agents.score_agent import score_agent
 
-from kg.neo4j_manager import Neo4jManager
-
-def create_blog_workflow(kg_manager: Neo4jManager):
+def create_blog_workflow():
     workflow = StateGraph(BlogState)
     
     # Aggiungi nodi con le funzioni

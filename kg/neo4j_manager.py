@@ -145,20 +145,20 @@ class Neo4jManager:
                 post_id=post_id, topic_name=topic_name
             )
     
-    def get_editorial_history(self) -> List[Dict]:
-        """Recupera lo storico editoriale"""
-        #per ogni post, recuperiamo il titolo, la data di creazione e i topic coperti, ordinando per data di creazione decrescente
-        with self.driver.session() as session:
-            result = session.run(
-                """
-                MATCH (p:Post)-[:COVERS]->(t:Topic)
-                RETURN p.title as title, 
-                       p.created_at as created_at,
-                       collect(t.name) as topics
-                ORDER BY p.created_at DESC
-                """
-            )
-            return [dict(record) for record in result]
+    # def get_editorial_history(self) -> List[Dict]:
+    #     """Recupera lo storico editoriale"""
+    #     #per ogni post, recuperiamo il titolo, la data di creazione e i topic coperti, ordinando per data di creazione decrescente
+    #     with self.driver.session() as session:
+    #         result = session.run(
+    #             """
+    #             MATCH (p:Post)-[:COVERS]->(t:Topic)
+    #             RETURN p.title as title, 
+    #                    p.created_at as created_at,
+    #                    collect(t.name) as topics
+    #             ORDER BY p.created_at DESC
+    #             """
+    #         )
+    #         return [dict(record) for record in result]
     
     def query(self, cypher: str, params: Dict = None) -> List[Dict]:
         """Esecuzione query generica"""

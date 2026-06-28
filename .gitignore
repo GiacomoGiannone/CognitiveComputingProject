@@ -26,3 +26,5 @@ data/bert_dataset/
 # IDE
 .vscode/
 .idea/
+
+rag/clean_rag.py

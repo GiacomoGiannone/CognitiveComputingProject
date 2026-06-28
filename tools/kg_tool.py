@@ -1,4 +1,5 @@
 # tools/kg_tool.py
+from kg import neo4j_manager
 from kg.neo4j_manager import Neo4jManager
 from langchain.tools import tool
 from langsmith import traceable
@@ -32,17 +33,17 @@ class KGQueryTool:
         
         return self.kg.query(cypher, params)
     
-    @traceable(name="KG-GetRelated", run_type="chain", tags=["kg", "query"])
-    def get_related(self, topic: str, depth: int = 1) -> List[str]:
-        """Trova topic correlati"""
-        cypher = f"""
-            MATCH (t:Topic {{name: $topic}})-[:RELATED_TO*1..{depth}]-(related:Topic)
-            WHERE t.name <> related.name
-            RETURN DISTINCT related.name as topic
-            LIMIT 10
-        """
-        results = self.kg.query(cypher, {"topic": topic})
-        return [r['topic'] for r in results]
+    # @traceable(name="KG-GetRelated", run_type="chain", tags=["kg", "query"])
+    # def get_related(self, topic: str, depth: int = 1) -> List[str]:
+    #     """Trova topic correlati"""
+    #     cypher = f"""
+    #         MATCH (t:Topic {{name: $topic}})-[:RELATED_TO*1..{depth}]-(related:Topic)
+    #         WHERE t.name <> related.name
+    #         RETURN DISTINCT related.name as topic
+    #         LIMIT 10
+    #     """
+    #     results = self.kg.query(cypher, {"topic": topic})
+    #     return [r['topic'] for r in results]
     
     def get_post_history(self, limit: int = 10) -> List[Dict]:
         """Recupera storico post per evitare ridondanza"""
@@ -80,6 +81,7 @@ def kg_search(topic: str) -> str:
         topics = [t.strip() for t in topic.split(',') if t.strip()]
         all_related = []
         for t in topics:
+            #use neo4j_manager to get related topics
             related = kg_tool_instance.get_related(t, depth=1)
             if related:
                 all_related.extend(related)

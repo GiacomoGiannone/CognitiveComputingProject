@@ -67,27 +67,27 @@ class HumanReviewAgent:
         else:
             return {"action": "reject", "feedback": "Invalid choice"}
     
-    def apply_feedback(self, post: Dict, feedback: str, writer_agent) -> Dict:
-        """Applica il feedback e rigenera il post"""
+    # def apply_feedback(self, post: Dict, feedback: str, writer_agent) -> Dict:
+    #     """Applica il feedback e rigenera il post"""
         
-        modified_prompt = f"""
-        Original post:
-        {post.get('content', '')}
+    #     modified_prompt = f"""
+    #     Original post:
+    #     {post.get('content', '')}
         
-        User feedback for modification:
-        {feedback}
+    #     User feedback for modification:
+    #     {feedback}
         
-        Please regenerate the post addressing this feedback while maintaining quality and citations.
-        """
+    #     Please regenerate the post addressing this feedback while maintaining quality and citations.
+    #     """
         
-        # Usa il writer_agent per rigenerare
-        new_post = writer_agent.write_post(
-            topic=post.get('topic'),
-            research_results={'research_summary': modified_prompt},
-            max_length=len(post.get('content', '').split())
-        )
+    #     # Usa il writer_agent per rigenerare
+    #     new_post = writer_agent.write_post(
+    #         topic=post.get('topic'),
+    #         research_results={'research_summary': modified_prompt},
+    #         max_length=len(post.get('content', '').split())
+    #     )
         
-        return new_post
+    #     return new_post
 
 
 @traceable(name="HumanReviewAgent", run_type="chain", tags=["agent", "human_review"])
