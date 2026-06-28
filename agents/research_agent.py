@@ -10,7 +10,7 @@ from langchain_ollama import ChatOllama
 from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 from tools.tavily_search import web_search
 from tools.rag_tool import rag_search
-from tools.kg_tool import kg_search, get_kg_tool
+from kg.neo4j_manager import kg_search
 from tools.rag_retriever import rag_add_documents, rag_retrieve
 from typing import Dict, Any
 
@@ -156,8 +156,7 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
 
     # ── Inizializza KG tool singleton se disponibile ──
     if kg_manager:
-        get_kg_tool(kg_manager)
-        print(" Knowledge Graph tool initialized")
+        print(" Knowledge Graph tool loaded")
 
     # ── Setup LLM con tools (kg_search solo se KG disponibile) ──
     tools = [web_search, rag_search]

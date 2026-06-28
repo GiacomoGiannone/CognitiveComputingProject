@@ -135,38 +135,6 @@ class EntityExtractor:
         
         print(f"📌 Fallback topics: {topics}")
         return topics if topics else ["General"]
-    
-    def extract_and_validate(self, post_title: str, blog_domain: str = None) -> Dict[str, Any]:
-        """
-        Estrae topic e ritorna un dict con validazione.
-        Utile per uso nei tools.
-        
-        Returns:
-            {
-                "success": bool,
-                "topics": List[str],
-                "post_title": str,
-                "message": str
-            }
-        """
-        
-        try:
-            topics = self.extract_graph_topics(post_title, blog_domain)
-            return {
-                "success": True,
-                "topics": topics,
-                "post_title": post_title,
-                "message": f"Successfully extracted {len(topics)} topics"
-            }
-        except Exception as e:
-            print(f"❌ Validation failed: {e}")
-            return {
-                "success": False,
-                "topics": [],
-                "post_title": post_title,
-                "message": f"Error: {str(e)}"
-            }
-
 
 # Instanza globale (lazy loading)
 _extractor = None
