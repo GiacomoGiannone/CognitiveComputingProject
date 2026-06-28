@@ -129,14 +129,17 @@ class Neo4jManager:
     
     def get_related(self, topic: str, depth: int = 1) -> List[str]:
         """Trova topic correlati con una profondità specificata (migrato da KGQueryTool)"""
-        cypher = f"""
-            MATCH (t:Topic {{name: $topic}})-[:RELATED_TO*1..{depth}]-(related:Topic)
-            WHERE t.name <> related.name
-            RETURN DISTINCT related.name as topic
-            LIMIT 10
-        """
-        results = self.query(cypher, {"topic": topic})
-        return [r['topic'] for r in results]
+        with self.driver.session() as session:
+            result = session.run(
+                f"""
+                MATCH (t:Topic {{name: $topic}})-[:RELATED_TO*1..{depth}]-(related:Topic)
+                WHERE t.name <> related.name
+                RETURN DISTINCT related.name as topic
+                LIMIT 10
+                """,
+                topic=topic
+            )
+            return [record["topic"] for record in result]
 
     
     def add_topic_relation(self, topic1: str, topic2: str, relation_type: str = "RELATED_TO"):
@@ -179,11 +182,11 @@ class Neo4jManager:
     #         )
     #         return [dict(record) for record in result]
     
-    def query(self, cypher: str, params: Dict = None) -> List[Dict]:
-        """Esecuzione query generica"""
-        with self.driver.session() as session:
-            result = session.run(cypher, params or {})
-            return [record.data() for record in result]
+    # def query(self, cypher: str, params: Dict = None) -> List[Dict]:
+    #     """Esecuzione query generica"""
+    #     with self.driver.session() as session:
+    #         result = session.run(cypher, params or {})
+    #         return [record.data() for record in result]
     
     def get_recently_covered_topics(self, days: int = 1) -> List[str]:
         """ Restituisce i topic coperti SOLO negli ultimi N giorni (cooldown)"""
