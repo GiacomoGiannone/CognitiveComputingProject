@@ -143,10 +143,6 @@ def planner_agent(state):
         Generate a list of 5 NEW blog post topics for this domain.
         Do NOT repeat any of the topics above.
         
-        IMPORTANT: The order of the topics matters. Arrange them in a logical publishing sequence
-        (e.g., from beginner to advanced, from general to specific, or by thematic progression).
-        Don't forget to explain why you chose these topics and why you ordered them in this way.
-        
         Return ONLY a JSON object with exactly two keys:
         - "topics": a list of 5 strings representing the new topics, ordered by publishing priority.
         - "justification": a string explaining both the editorial rationale behind the topic selection AND the reason for their specific ordering.

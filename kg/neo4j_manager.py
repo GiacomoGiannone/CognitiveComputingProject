@@ -196,6 +196,11 @@ class Neo4jManager:
     #     with self.driver.session() as session:
     #         result = session.run(cypher, params or {})
     #         return [record.data() for record in result]
+    # def query(self, cypher: str, params: Dict = None) -> List[Dict]:
+    #     """Esecuzione query generica"""
+    #     with self.driver.session() as session:
+    #         result = session.run(cypher, params or {})
+    #         return [record.data() for record in result]
     
     def get_recently_covered_topics(self, days: int = 1) -> List[str]:
         """ Restituisce i topic coperti SOLO negli ultimi N giorni (cooldown)"""

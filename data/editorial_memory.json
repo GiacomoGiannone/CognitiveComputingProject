@@ -195,38 +195,38 @@
       "finished_at": "2026-06-28T15:26:33.271866Z"
     },
     {
-      "created_at": "2026-06-28T15:45:57.621204Z",
+      "created_at": "2026-06-28T15:50:55.262589Z",
       "finished": false,
       "last_topic_index": -1,
-      "justification": "Topics progress from foundational concepts (stance and posture) to advanced techniques (periodization and biomechanical analysis), allowing readers to build knowledge incrementally across the series. Agility training is introduced as a key component of sports performance, with proprioception serving as a bridge between fundamental and advanced topics.",
+      "justification": "This series begins with foundational knowledge (Pitch Recognition, Running Shoe selection) to build a strong foundation. It then shifts focus to individualized training plans and mental preparation, emphasizing reader self-improvement. Finally, it concludes with an advanced topic on data analytics in professional soccer, appealing to readers interested in the intersection of technology and sports.",
       "topics": [
         {
           "index": 0,
-          "topic": "Understanding Basic Stance and Posture for Effective Sports Performance",
+          "topic": "Mastering the Art of Pitch Recognition in Baseball: A Step-by-Step Guide",
           "finished": false,
           "finished_at": null
         },
         {
           "index": 1,
-          "topic": "Mastering the Fundamentals of Agility Training for Enhanced Speed and Quickness",
+          "topic": "The Science Behind Choosing the Right Running Shoe for Your Foot Type",
           "finished": false,
           "finished_at": null
         },
         {
           "index": 2,
-          "topic": "An In-Depth Analysis of Proprioception and Its Role in Athletic Movement",
+          "topic": "Unlocking Your Potential: How to Create a Customized Training Plan for Your Athletic Goals",
           "finished": false,
           "finished_at": null
         },
         {
           "index": 3,
-          "topic": "Unlocking the Secrets of Periodization: A Guide to Optimizing Training Cycles",
+          "topic": "The Impact of Mental Preparation on Peak Performance in High-Stakes Sports",
           "finished": false,
           "finished_at": null
         },
         {
           "index": 4,
-          "topic": "Advanced Biomechanical Analysis: Using Video Feedback for Improved Technique",
+          "topic": "Analyzing the Role of Data Analytics in Modern Professional Soccer Strategy",
           "finished": false,
           "finished_at": null
         }
