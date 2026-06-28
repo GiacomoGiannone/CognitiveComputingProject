@@ -84,16 +84,17 @@ def _format_observation(tool_name: str, tool_result) -> str:
     # diventa solo il titolo e lo score
     if tool_name == "rag_search":
         result_str = str(tool_result)
-        # Estrai solo i titoli dai risultati RAG
-        lines = result_str.split('\n')
-        titles = [l.strip() for l in lines if l.strip().startswith('[')]
+
+        # Estrai solo le righe che rappresentano i risultati
+        titles = [
+            line.strip()
+            for line in result_str.splitlines()
+            if line.strip().startswith("[")
+        ]
+
         if titles:
-            # Mostra solo la riga con titolo e score (prima riga di ogni blocco)
-            title_lines = []
-            for t in titles:
-                # Prendi solo fino alla fine della riga del titolo (prima di \n con contenuto)
-                title_lines.append(t.split('\n')[0])
-            return "RAG results:\n   " + "\n   ".join(title_lines)
+            return "RAG results:\n   " + "\n   ".join(titles)
+
         return result_str[:200]
 
     # web search invece costruisce:
@@ -154,9 +155,9 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
             }
         }
 
-    # ── Inizializza KG tool singleton se disponibile ──
+    # ── Controlla se il KG manager è disponibile ──
     if kg_manager:
-        print(" Knowledge Graph tool loaded")
+        print(" KG manager loaded")
 
     # ── Setup LLM con tools (kg_search solo se KG disponibile) ──
     tools = [web_search, rag_search]
@@ -167,7 +168,7 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
     llm = ChatOllama(model="qwen3", temperature=0, reasoning=True)
     llm_with_tools = llm.bind_tools(tools)
 
-    print(f"🤖 LLM: qwen3 with {len(tools)} tools bound: {list(tool_map.keys())}")
+    print(f" LLM: qwen3 with {len(tools)} tools bound: {list(tool_map.keys())}")
 
     # ── Costruisci contesto iniziale ──
     topic_context = f"Research this topic thoroughly: \"{topic}\""
@@ -231,9 +232,9 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
 
         # THOUGHT: Mostra il vero pensiero dell'LLM
         if thought_text:
-            print(f"\n💭 Thought: {thought_text}")
+            print(f"\n Thought: {thought_text}")
         else:
-            print(f"\n💭 Thought: (nessun reasoning restituito dal modello)")
+            print(f"\n Thought: (nessun reasoning restituito dal modello)")
 
         # ── ACTION + OBSERVATION per ogni tool call ──
         for tc in response.tool_calls:
@@ -241,7 +242,7 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
             tool_args = tc["args"]
             tool_call_id = tc["id"]
 
-            print(f"\n⚡ Action: {tool_name}({tool_args})")
+            print(f"\n Action: {tool_name}({tool_args})")
             tool_calls_log.append({"tool": tool_name, "args": tool_args})
 
             try:
@@ -294,10 +295,10 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
                     print(f" Observation: {formatted_obs}")
                 else:
                     result_str = f"Error: tool '{tool_name}' not found."
-                    print(f" Observation: ❌ {result_str}")
+                    print(f" Observation:  {result_str}")
             except Exception as e:
                 result_str = f"Tool execution error: {str(e)}"
-                print(f" Observation: ❌ {result_str}")
+                print(f" Observation:  {result_str}")
 
             # Aggiungi il risultato come ToolMessage nella cronologia
             messages.append(ToolMessage(
@@ -311,6 +312,7 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
         # Prova a estrarre contenuto dall'ultima risposta
         if messages and hasattr(messages[-1], 'content') and messages[-1].content:
             raw = messages[-1].content
+            #cambiare come sopra, non usare <think> ma reasoning_content
             research_summary = re.sub(
                 r'<think>.*?</think>', '', raw, flags=re.DOTALL
             ).strip()
@@ -341,7 +343,7 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
     if web_sources:
         try:
             added = rag_add_documents(web_sources)
-            print(f"💾 Post-loop: Added {added} chunks from {len(web_sources)} unique web sources to RAG store")
+            print(f" Post-loop: Added {added} chunks from {len(web_sources)} unique web sources to RAG store")
         except Exception as e:
             print(f" Could not add documents to RAG: {e}")
 
