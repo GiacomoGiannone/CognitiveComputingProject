@@ -41,32 +41,6 @@ def planner_agent(state):
 
     memory = load_memory(memory_path)
     
-    # Normalizza tutti i piani
-    #facciamo la normalizzazione dei topic in modo che siano sempre in formato dict con index, topic, finished, finished_at
-    #potrebbero esserci formati differenti
-    #ad esempio, prima potremmo avere topics = ["Topic 1", "Topic 2", "Topic 3"]
-    #mentre dopo la normalizzazione, avremo topics = [{"index": 0, "topic": "Topic 1", "finished": False, "finished_at": None}, ...]
-    for plan in memory.get("plans", []):
-        topics_normalized = []
-        for idx, item in enumerate(plan.get("topics", [])):
-            if isinstance(item, str):
-                topics_normalized.append({
-                    "index": idx,
-                    "topic": item,
-                    "finished": False,
-                    "finished_at": None
-                })
-            elif isinstance(item, dict):
-                topics_normalized.append({
-                    "index": item.get("index", idx),
-                    "topic": item.get("topic") or item.get("name", ""),
-                    "finished": item.get("finished", False),
-                    "finished_at": item.get("finished_at")
-                })
-        plan["topics"] = topics_normalized
-        plan.setdefault("finished", False)
-        plan.setdefault("last_topic_index", -1)
-    
     # CERCA IL PIANO ATTIVO (primo piano con finished=False)
     active_plan = None
     active_plan_idx = -1
