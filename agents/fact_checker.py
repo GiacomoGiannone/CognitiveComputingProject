@@ -201,8 +201,7 @@ def fact_check_agent(state):
         print(" No content to fact-check")
         return {
             'fact_check_passed': True,
-            'fact_check_results': {'claims_checked': 0, 'issues_found': [], 'suggestions': '', 'detailed_results': []},
-            'requires_revision': False
+            'fact_check_results': {'claims_checked': 0, 'issues_found': [], 'suggestions': '', 'detailed_results': []}
         }
     
     fact_check_result = checker.fact_check_post(content)
@@ -218,12 +217,10 @@ def fact_check_agent(state):
     if fact_check_result['issues_found']:
         return {
             'fact_check_passed': False,
-            'fact_check_results': fact_check_result,
-            'requires_revision': True
+            'fact_check_results': fact_check_result
         }
     else:
         return {
             'fact_check_passed': True,
-            'fact_check_results': fact_check_result,
-            'requires_revision': False
+            'fact_check_results': fact_check_result
         }

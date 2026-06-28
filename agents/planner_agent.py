@@ -278,15 +278,6 @@ def planner_agent(state):
             status = " PENDING"
         print(f"   {status}: {topic_item.get('topic')}")
     
-    editorial_plan = f"""
-     EDITORIAL PLAN for {domain}:
-    
-    Current post ({next_index + 1}/{len(topics_list)}): {current_topic}
-    Remaining topics: {', '.join(remaining_topics[1:5]) if len(remaining_topics) > 1 else 'None'}
-    
-    Justification: {active_plan.get('justification', 'Sequential order based on plan creation.')}
-    """
-    
     print(f"\n Selected topic for research: {current_topic}")
     print("="*50)
     
@@ -296,10 +287,7 @@ def planner_agent(state):
     extracted_topics = extract_topics_from_title(current_topic, domain)
     #print(f" Generic topics extracted: {extracted_topics}")
     
-    #editorial_plan non viene utilizzata?
     return {
-        "editorial_plan": editorial_plan,
         "current_topic": current_topic,
-        "all_topics": remaining_topics,
         "extracted_graph_topics": extracted_topics 
     }

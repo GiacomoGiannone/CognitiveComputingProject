@@ -50,13 +50,10 @@ def main():
         "kg_manager": kg,
         "current_topic": None,  # Sarà impostato dal planner
         "extracted_graph_topics": [],  # Topic generici estratti dal planner
-        "max_post_length": 1500,
         "iteration": 0,
         "max_iterations": 2,
-        "requires_regeneration": False,
         "barely_passed": False,
         "requires_research": False,
-        "editorial_plan": "",
         "research_results": {},
         "draft_post": {},
         "fact_check_passed": False,

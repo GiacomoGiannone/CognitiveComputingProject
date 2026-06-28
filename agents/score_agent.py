@@ -568,7 +568,6 @@ def score_agent(state):
     print("="*50)
 
     return {
-        'quality_evaluation': evaluation,
         'quality_passed': quality_passed,
         'barely_passed': barely_passed
     }

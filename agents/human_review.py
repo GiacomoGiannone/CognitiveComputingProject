@@ -310,7 +310,6 @@ def human_review_agent(state):
         
         return {
             'review_action': 'approved',
-            'post_id': post_id,
             'final_post': post,
             'proceed_to_next_topic': review_result.get('proceed', False)
         }
@@ -319,8 +318,7 @@ def human_review_agent(state):
         # Ritorna al writer con modifiche
         return {
             'review_action': 'modify_requested',
-            'modification_feedback': review_result['feedback'],
-            'requires_regeneration': True
+            'modification_feedback': review_result['feedback']
         }
     
     elif review_result['action'] == 'reject':
