@@ -134,8 +134,10 @@ def planner_agent(state):
         llm = ChatOllama(model="llama3.1", temperature=0.7)
         response = llm.invoke([HumanMessage(content=prompt)])
         
-        # Parsing dei topic e della giustificazione
-        justification = "Sequential order based on plan creation."
+        """Parsing dei topic e della giustificazione"""
+
+        # Una giustificazione di default se il parsing fallisce, per evitare crash
+        justification = "Sequential order based on plan creation." 
         try:
             import re
             content = response.content
@@ -153,7 +155,7 @@ def planner_agent(state):
             if match:
                 data = json.loads(match.group())
                 topics = data.get("topics", [])
-                justification = data.get("justification", "Sequential order based on plan creation.")
+                justification = data.get("justification", justification)
             else:
                 topics = [
                     "Allenamento pliometrico per sport di squadra",
@@ -163,7 +165,7 @@ def planner_agent(state):
                     "Recupero attivo dopo l'allenamento"
                 ]
         except Exception as e:
-            print(f"⚠️ Error parsing plan JSON: {e}")
+            print(f" Error parsing plan JSON: {e}")
             topics = [
                 "Allenamento pliometrico per sport di squadra",
                 "Gestione del carico per atleti amatoriali",
@@ -224,7 +226,7 @@ def planner_agent(state):
         memory.setdefault("plans", []).append(active_plan)
         save_memory(memory_path, memory)
         
-        print("\n✨ Generated NEW editorial plan:")
+        print("\n Generated NEW editorial plan:")
         for idx, topic_name in enumerate(topics, 1):
             print(f"  {idx}. {topic_name}")
         print(f"  Justification: {justification}")
@@ -294,6 +296,7 @@ def planner_agent(state):
     extracted_topics = extract_topics_from_title(current_topic, domain)
     #print(f" Generic topics extracted: {extracted_topics}")
     
+    #editorial_plan non viene utilizzata?
     return {
         "editorial_plan": editorial_plan,
         "current_topic": current_topic,
