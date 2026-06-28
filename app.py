@@ -42,7 +42,7 @@ def main():
         kg = None
     
     # Crea workflow
-    app = create_blog_workflow(kg)
+    app = create_blog_workflow()
     
     # Stato iniziale - NOTA: current_topic sarà impostato dal planner
     initial_state = {

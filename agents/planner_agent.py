@@ -92,12 +92,42 @@ def planner_agent(state):
             except Exception as e:
                 print(f" No topic to mark as completed")
         
-        # Raccolgi tutti i topic già usati
+        # Raccogli tutti i topic già usati nelle ultime 24 ore (cooldown)
         previous_topics = set(covered_topics)
+        now = datetime.utcnow()
         for plan in memory.get("plans", []):
+            # Controlla se il piano è stato creato nelle ultime 24 ore
+            plan_created_at_str = plan.get("created_at")
+            plan_in_last_24h = False
+            if plan_created_at_str:
+                try:
+                    clean_ts = plan_created_at_str.replace("Z", "")
+                    plan_time = datetime.fromisoformat(clean_ts)
+                    if (now - plan_time).total_seconds() <= 86400:
+                        plan_in_last_24h = True
+                except Exception as e:
+                    print(f" Error parsing plan created_at: {e}")
+
             for topic_item in plan.get("topics", []):
-                if topic_item.get("topic"):
-                    previous_topics.add(topic_item.get("topic"))
+                topic_name = topic_item.get("topic")
+                if not topic_name:
+                    continue
+                
+                # Se il piano è stato creato nelle ultime 24 ore, escludi tutti i suoi topic
+                if plan_in_last_24h:
+                    previous_topics.add(topic_name)
+                    continue
+                
+                # Altrimenti, controlla se il topic specifico è stato completato nelle ultime 24 ore
+                finished_at_str = topic_item.get("finished_at")
+                if finished_at_str:
+                    try:
+                        clean_ts = finished_at_str.replace("Z", "")
+                        finish_time = datetime.fromisoformat(clean_ts)
+                        if (now - finish_time).total_seconds() <= 86400:
+                            previous_topics.add(topic_name)
+                    except Exception as e:
+                        print(f" Error parsing topic finished_at: {e}")
         
         avoid_list = previous_topics
         #crea una stringa con i topic da evitare per il prompt
@@ -113,14 +143,18 @@ def planner_agent(state):
         Generate a list of 5 NEW blog post topics for this domain.
         Do NOT repeat any of the topics above.
         
+        IMPORTANT: The order of the topics matters. Arrange them in a logical publishing sequence
+        (e.g., from beginner to advanced, from general to specific, or by thematic progression).
+        Don't forget to explain why you chose these topics and why you ordered them in this way.
+        
         Return ONLY a JSON object with exactly two keys:
-        - "topics": a list of 5 strings representing the new topics.
-        - "justification": a string explaining the editorial rationale behind these topics.
+        - "topics": a list of 5 strings representing the new topics, ordered by publishing priority.
+        - "justification": a string explaining both the editorial rationale behind the topic selection AND the reason for their specific ordering.
         
         Example format:
         {{
             "topics": ["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5"],
-            "justification": "This plan covers key fundamentals and advanced topics to capture beginner to expert readers sequentially."
+            "justification": "Topics progress from foundational concepts (Topic 1) to advanced techniques (Topic 5), allowing readers to build knowledge incrementally across the series."
         }}
         
         Make topics specific and concrete, not too broad.
