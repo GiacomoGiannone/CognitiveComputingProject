@@ -26,6 +26,7 @@ class RAGRetriever:
         )
         
         self.vectorstore = None
+        self.last_results = []  # Cache to store the results of the last retrieval
         self._load_or_create()
     
     def _load_or_create(self):
@@ -161,9 +162,11 @@ class RAGRetriever:
                 if len(documents) >= k:
                     break
             
+            self.last_results = documents
             return documents
         except Exception as e:
             print(f"⚠️ Retrieval error: {e}")
+            self.last_results = []
             return []
     
     def _save(self):

@@ -11,7 +11,7 @@ from langchain_core.messages import SystemMessage, HumanMessage, ToolMessage
 from tools.tavily_search import web_search
 from tools.rag_tool import rag_search
 from kg.neo4j_manager import kg_search
-from tools.rag_retriever import rag_add_documents, rag_retrieve
+from tools.rag_retriever import rag_add_documents, rag_retrieve, get_rag_retriever
 from typing import Dict, Any
 
 
@@ -265,9 +265,8 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
                                     'relevance_score': r.get('score', 0.0)
                                 })
                     elif tool_name == "rag_search":
-                        # Recupera dati strutturati RAG per passarli al writer
-                        query_used = tool_args.get('query', '')
-                        rag_structured = rag_retrieve(query_used, k=5)
+                        # Recupera i dati strutturati RAG dalla cache per passarli al writer senza rieseguire la ricerca
+                        rag_structured = get_rag_retriever().last_results
                         for doc in rag_structured:
                             url = doc['metadata'].get('url', 'rag://local')
                             # Evita duplicati in collected_sources
@@ -307,33 +306,23 @@ def research_agent(state: Dict[str, Any]) -> Dict[str, Any]:
             ))
 
     else:
-        # Max iterazioni raggiunte senza summary finale
+        # Max iterazioni raggiunte senza summary finale. Richiediamo sempre la sintesi di fallback.
         print(f"\n Max iterations ({max_iterations}) reached without final answer")
-        # Prova a estrarre contenuto dall'ultima risposta
-        if messages and hasattr(messages[-1], 'content') and messages[-1].content:
-            raw = messages[-1].content
-            #cambiare come sopra, non usare <think> ma reasoning_content
+        print("📝 Requesting final summary from LLM...")
+        try:
+            fallback_llm = ChatOllama(model="qwen3", temperature=0)
+            messages.append(HumanMessage(
+                content="Please provide your final research summary now, "
+                        "based on all the information gathered so far. "
+                        "Do NOT call any tools. Do NOT include <think> tags."
+            ))
+            fallback_response = fallback_llm.invoke(messages)
+            raw = fallback_response.content or ""
             research_summary = re.sub(
                 r'<think>.*?</think>', '', raw, flags=re.DOTALL
             ).strip()
-        
-        if not research_summary:
-            # Fallback: chiedi all'LLM di sintetizzare senza tool
-            print("📝 Requesting final summary from LLM...")
-            try:
-                fallback_llm = ChatOllama(model="qwen3", temperature=0)
-                messages.append(HumanMessage(
-                    content="Please provide your final research summary now, "
-                            "based on all the information gathered so far. "
-                            "Do NOT call any tools. Do NOT include <think> tags."
-                ))
-                fallback_response = fallback_llm.invoke(messages)
-                raw = fallback_response.content or ""
-                research_summary = re.sub(
-                    r'<think>.*?</think>', '', raw, flags=re.DOTALL
-                ).strip()
-            except Exception as e:
-                research_summary = f"Could not generate summary: {str(e)}"
+        except Exception as e:
+            research_summary = f"Could not generate summary: {str(e)}"
 
     # Ordina tutte le sorgenti raccolte per pertinenza decrescente
     collected_sources.sort(key=lambda x: x.get('relevance_score', 0.0), reverse=True)
