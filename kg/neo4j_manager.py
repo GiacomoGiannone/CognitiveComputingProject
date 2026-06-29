@@ -26,22 +26,6 @@ class Neo4jManager:
             session.run("CREATE CONSTRAINT post_id IF NOT EXISTS FOR (p:Post) REQUIRE p.id IS UNIQUE") #post id deve essere unico
             session.run("CREATE CONSTRAINT source_url IF NOT EXISTS FOR (s:Source) REQUIRE s.url IS UNIQUE") #source url deve essere unico
     
-    # def add_topic(self, name: str, description: str = None) -> Dict:
-    #     """Aggiunge un topic al grafo"""
-    #     with self.driver.session() as session:
-    #         #MERGE cerca un nodo TOPIC con quel nome. SE non esiste, lo crea. 
-    #         #SET fa assegnamento della descrizione e della data di creazione
-    #         result = session.run(
-    #             """
-    #             MERGE (t:Topic {name: $name})
-    #             SET t.description = $description,
-    #                 t.created_at = datetime()
-    #             RETURN t.name as name, t.description as description
-    #             """,
-    #             name=name, description=description
-    #         )
-    #         return result.single().data()
-    
     def add_post(self, title: str, content: str, topics: List[str], sources: List[str], claims: List[str] = None) -> str:
         """Aggiunge un post e lo connette a topics, sources e claims"""
         #genera un id random per il post
@@ -112,21 +96,6 @@ class Neo4jManager:
             )
             return [record["topic"] for record in result]
     
-    # def get_related_topics(self, topic: str, limit: int = 5) -> List[str]:
-    #     """Trova topic correlati"""
-    #     #cerchiamo i topic correlati a un topic specifico con profondita' di 1 o 2, escludendo il topic stesso, e restituiamo i nomi dei topic correlati
-    #     with self.driver.session() as session:
-    #           result = session.run(
-    #             """
-    #             MATCH (t:Topic {name: $topic})-[:RELATED_TO*1..2]-(related:Topic)
-    #             WHERE t.name <> related.name
-    #             RETURN DISTINCT related.name as topic
-    #             LIMIT $limit
-    #             """,
-    #             topic=topic, limit=limit
-    #         )
-    #           return [record["topic"] for record in result]
-    
     def get_related(self, topic: str, depth: int = 1) -> List[str]:
         """Trova topic correlati con una profondità specificata (migrato da KGQueryTool)"""
         # cypher = f"""
@@ -176,32 +145,6 @@ class Neo4jManager:
                 post_id=post_id, topic_name=topic_name
             )
     
-    # def get_editorial_history(self) -> List[Dict]:
-    #     """Recupera lo storico editoriale"""
-    #     #per ogni post, recuperiamo il titolo, la data di creazione e i topic coperti, ordinando per data di creazione decrescente
-    #     with self.driver.session() as session:
-    #         result = session.run(
-    #             """
-    #             MATCH (p:Post)-[:COVERS]->(t:Topic)
-    #             RETURN p.title as title, 
-    #                    p.created_at as created_at,
-    #                    collect(t.name) as topics
-    #             ORDER BY p.created_at DESC
-    #             """
-    #         )
-    #         return [dict(record) for record in result]
-    
-    # def query(self, cypher: str, params: Dict = None) -> List[Dict]:
-    #     """Esecuzione query generica"""
-    #     with self.driver.session() as session:
-    #         result = session.run(cypher, params or {})
-    #         return [record.data() for record in result]
-    # def query(self, cypher: str, params: Dict = None) -> List[Dict]:
-    #     """Esecuzione query generica"""
-    #     with self.driver.session() as session:
-    #         result = session.run(cypher, params or {})
-    #         return [record.data() for record in result]
-    
     def get_recently_covered_topics(self, days: int = 1) -> List[str]:
         """ Restituisce i topic coperti SOLO negli ultimi N giorni (cooldown)"""
         with self.driver.session() as session:
@@ -216,77 +159,6 @@ class Neo4jManager:
     
     def close(self):
         self.driver.close()
-
-    # def expand_query_with_kg(self, query: str, max_related: int = 3) -> str:
-    #     """
-    #     Espande una query usando il Knowledge Graph
-    #     Trova topic correlati per arricchire la ricerca
-    #     """
-    #     try:
-            
-    #         # Cerca topic correlati nel KG
-    #         # prima cerchiamo topic correlati alla query, confrontando la query con i nomi dei topic
-    #         # poi troviamo i topic correlati a quei topic
-            
-    #         result = self.query("""
-    #             MATCH (t:Topic)
-    #             WHERE t.name CONTAINS $query OR $query CONTAINS t.name
-    #             MATCH (t)-[:RELATED_TO]->(related:Topic)
-    #             RETURN DISTINCT related.name as related_topic
-    #             LIMIT $limit
-    #         """, {"query": query.lower(), "limit": max_related})
-            
-    #         #aggiungi i suggerimenti alla query originale
-    #         if result:
-    #             related = [r['related_topic'] for r in result]
-    #             expanded = f"{query}\n\nRelated topics to consider: {', '.join(related)}"
-    #             print(f" KG Expanded query: '{query}' -> Added related: {related}")
-    #             return expanded
-            
-    #     except Exception as e:
-    #         print(f" KG query expansion failed: {e}")
-        
-    #     return query
-    
-    # def get_context_for_topic(self, topic: str) -> str:
-    #     """
-    #     Recupera contesto dal KG per un topic
-    #     Usato per arricchire la generazione dei post
-    #     """
-    #     try:
-    #         # Trova topic correlati
-    #         related = self.query("""
-    #             MATCH (t:Topic {name: $topic})-[:RELATED_TO*1..2]-(related:Topic)
-    #             WHERE t.name <> related.name
-    #             RETURN DISTINCT related.name as topic
-    #             LIMIT 5
-    #         """, {"topic": topic})
-            
-    #         related_topics = [r['topic'] for r in related] if related else []
-            
-    #         # Trova post precedenti sul topic
-    #         previous_posts = self.query("""
-    #             MATCH (p:Post)-[:COVERS]->(t:Topic {name: $topic})
-    #             RETURN p.title as title, p.created_at as date
-    #             ORDER BY p.created_at DESC
-    #             LIMIT 3
-    #         """, {"topic": topic})
-            
-    #         context = f"""
-    #         Knowledge Graph Context for: {topic}
-            
-    #         Related topics: {', '.join(related_topics) if related_topics else 'None'}
-            
-    #         Previous posts on this topic:
-    #         """
-    #         for post in previous_posts:
-    #             context += f"\n  - {post['title']} ({post['date']})"
-            
-    #         return context
-            
-    #     except Exception as e:
-    #         print(f" KG context retrieval failed: {e}")
-    #         return f"No additional context found for {topic}"
 
 
 @tool
