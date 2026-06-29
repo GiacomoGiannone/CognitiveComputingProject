@@ -21,13 +21,15 @@ class FactCheckAgent:
         """Estrae claims verificabili dal post - SOLO fatti specifici"""
         prompt = f"""
         Extract ONLY verifiable factual claims from this blog post.
+        IMPORTANT: The post may be written in any language (e.g. Italian), but you MUST translate and write ALL claims in English. This is critical for web verification.
+        
         DO NOT include:
         - Introductory text or headers
         - Generic statements ("The blog covers...", "This post discusses...")
         - Markdown formatting or bullet points
         - Opinions or advice
         
-        Return a JSON list of strings containing only the specific factual claims.
+        Return a JSON list of strings containing only the specific factual claims, ALL IN ENGLISH.
         
         Example format:
         [

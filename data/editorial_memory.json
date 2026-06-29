@@ -197,20 +197,20 @@
     {
       "created_at": "2026-06-28T15:50:55.262589Z",
       "finished": false,
-      "last_topic_index": -1,
+      "last_topic_index": 1,
       "justification": "This series begins with foundational knowledge (Pitch Recognition, Running Shoe selection) to build a strong foundation. It then shifts focus to individualized training plans and mental preparation, emphasizing reader self-improvement. Finally, it concludes with an advanced topic on data analytics in professional soccer, appealing to readers interested in the intersection of technology and sports.",
       "topics": [
         {
           "index": 0,
           "topic": "Mastering the Art of Pitch Recognition in Baseball: A Step-by-Step Guide",
-          "finished": false,
-          "finished_at": null
+          "finished": true,
+          "finished_at": "2026-06-29T15:10:58.269613Z"
         },
         {
           "index": 1,
           "topic": "The Science Behind Choosing the Right Running Shoe for Your Foot Type",
-          "finished": false,
-          "finished_at": null
+          "finished": true,
+          "finished_at": "2026-06-29T15:56:50.849056Z"
         },
         {
           "index": 2,

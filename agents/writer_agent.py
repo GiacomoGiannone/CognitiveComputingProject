@@ -171,13 +171,27 @@ Content:
 ---
 """
     
-    # Controlla se è stata richiesta una modifica dall'utente
+    # Controlla se è stata richiesta una modifica dall'utente o dal fact checker
     review_action = state.get('review_action')
-    feedback = state.get('modification_feedback')
+    user_feedback = state.get('modification_feedback')
     previous_post = state.get('draft_post', {}).get('content')
+    
+    fact_check_passed = state.get('fact_check_passed', True)
+    fact_check_results = state.get('fact_check_results', {})
+    fact_check_feedback = fact_check_results.get('suggestions') if not fact_check_passed else None
+    
+    is_modification = (review_action == 'modify_requested' and user_feedback) or fact_check_feedback
 
-    if review_action == 'modify_requested' and feedback and previous_post:
-        print(f" Applying user modification feedback: '{feedback}'")
+    if is_modification and previous_post:
+        feedback_parts = []
+        if review_action == 'modify_requested' and user_feedback:
+            feedback_parts.append(f"User Review Feedback:\n{user_feedback}")
+        if fact_check_feedback:
+            feedback_parts.append(f"Fact-Checker Feedback (please correct these issues):\n{fact_check_feedback}")
+            
+        feedback_text = "\n\n".join(feedback_parts)
+        print(f" Applying modification feedback:\n{feedback_text}")
+        
         prompt = f"""
 Write a helpful, informative blog post about: "{topic}"
 
@@ -187,22 +201,23 @@ BASED ON THESE SOURCES:
 RESEARCH SUMMARY:
 {research.get('research_summary', '')}
 
-USER FEEDBACK FOR MODIFICATION:
-We generated a previous version of this post, but the user requested changes.
+FEEDBACK FOR MODIFICATION:
+We generated a previous version of this post, but changes are required.
 Please revise the draft below, applying this feedback:
-"{feedback}"
+{feedback_text}
 
 PREVIOUS DRAFT:
 {previous_post}
 
 REQUIREMENTS:
-1. Address the user's feedback precisely
-2. Write approx 5000 words
-3. Use a friendly, expert tone
-4. Include practical advice or actionable tips
-5. Cite sources inline like [Source: Title]
-6. End with a conclusion
-7. Start with '# Title' on first line
+1. Write the entire post in Italian (italiano)
+2. Address the feedback precisely
+3. Write approx 5000 words
+4. Use a friendly, expert tone
+5. Include practical advice or actionable tips
+6. IMPORTANT: You MUST cite sources inline using the format [Source: Title] or [Fonte: Titolo]. Every major claim should reference its source. This is mandatory.
+7. End with a conclusion
+8. Start with '# Title' on first line
 
 Write the revised complete post now:
 """
@@ -217,12 +232,13 @@ RESEARCH SUMMARY:
 {research.get('research_summary', '')}
 
 REQUIREMENTS:
-1. Write approx 5000 words
-2. Use a friendly, expert tone
-3. Include practical advice or actionable tips
-4. Cite sources inline like [Source: Title]
-5. End with a conclusion
-6. Start with '# Title' on first line
+1. Write the entire post in Italian (italiano)
+2. Write approx 5000 words
+3. Use a friendly, expert tone
+4. Include practical advice or actionable tips
+5. IMPORTANT: You MUST cite sources inline using the format [Source: Title] or [Fonte: Titolo]. Every major claim should reference its source. This is mandatory.
+6. End with a conclusion
+7. Start with '# Title' on first line
 
 Write the complete post now:
 """
@@ -251,7 +267,9 @@ Write the complete post now:
             "error": False
         },
         "review_action": "",
-        "modification_feedback": ""
+        "modification_feedback": "",
+        "fact_check_passed": True,
+        "fact_check_results": {}
     }
     
     print(f" Post generated: '{title}'")
