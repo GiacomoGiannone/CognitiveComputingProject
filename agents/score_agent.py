@@ -133,7 +133,7 @@ class QualityRegressionDataset(Dataset):
             max_length=self.max_length,
             return_tensors='pt'
         )
-        
+        #facciamo flatten perche' ritorna i samples sotto forma di batch (e.g (1, 512) ) e vogliamo solo (512)
         return {
             'input_ids': encoding['input_ids'].flatten(),
             'attention_mask': encoding['attention_mask'].flatten(),
@@ -165,12 +165,15 @@ class QualityRegressionModel(nn.Module):
         Forward pass compatibile con Trainer di transformers
         """
         outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask)
+        #prendi tutti gli esempi del batch, prendi solo il CLS token, prendi tutte le 768 features
         cls_output = outputs.last_hidden_state[:, 0, :]
         cls_output = self.dropout(cls_output)
         score = self.regressor(cls_output)
+        #prima di squeeze vale (batch_size,1) e dopo vale (batch_size)
         score = self.sigmoid(score).squeeze()
         
         # Per il Trainer: restituisce una tupla (loss, logits) o un dizionario
+        #dopo lo squeeze si potrebbe avere (0.82) ad esempio, mentre noi vogliamo un tensore  ([0.82]) perche' il Trainer si aspetta un tensore
         if labels is not None:
             # Assicura che le dimensioni corrispondano
             if score.dim() == 0:
@@ -179,7 +182,7 @@ class QualityRegressionModel(nn.Module):
                 labels = labels.unsqueeze(0)
             loss = nn.MSELoss()(score, labels)
             return (loss, score)
-        
+        #label is None, quindi restituisci solo lo score
         return (None, score)
 
 
@@ -239,7 +242,7 @@ class ScoreAgent:
             plot_loss: Se True, mostra il grafico della loss
         """
         print("\n" + "="*60)
-        print("🏋️ Fine-tuning BERT italiano per Quality Scoring")
+        print(" Fine-tuning BERT italiano per Quality Scoring")
         print("="*60)
         
         # Prepara dataset
@@ -262,6 +265,7 @@ class ScoreAgent:
             predictions = np.clip(predictions, 0, 1)
             mse = mean_squared_error(labels, predictions)
             mae = mean_absolute_error(labels, predictions)
+            #quante predizioni sono abbastanza vicine al valore reale (entro 0.1)
             acc_within_01 = np.mean(np.abs(predictions - labels) < 0.1)
             
             return {
@@ -492,7 +496,7 @@ class ScoreAgent:
         if print_comparison:
             return self.score_with_comparison(post_content)
         
-        # Versione semplice (solo BERT o fallback)
+        # Versione semplice (fallback)
         if self.model is None:
             return self._fallback_score_only(post_content)
         

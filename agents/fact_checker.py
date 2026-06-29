@@ -151,12 +151,12 @@ class FactCheckAgent:
             confidence = result['verification'].get('confidence', 0)
             
             if is_supported is False:
-                print(f"        ❌ NOT SUPPORTED (confidence: {confidence}%)")
+                print(f"         NOT SUPPORTED (confidence: {confidence}%)")
                 issues_found.append(claim)
             elif is_supported is True:
-                print(f"        ✅ SUPPORTED (confidence: {confidence}%)")
+                print(f"        SUPPORTED (confidence: {confidence}%)")
             else:
-                print(f"       ❔  UNCLEAR (parse error)")
+                print(f"         UNCLEAR (parse error)")
         
         # Genera suggerimenti
         suggestions = ""
@@ -189,7 +189,7 @@ class FactCheckAgent:
 def fact_check_agent(state):
     """Fact check agent per workflow"""
     print("\n" + "="*60)
-    print("🕵️ FACT CHECK AGENT STARTING")
+    print(" FACT CHECK AGENT STARTING")
     print("="*60)
     
     checker = FactCheckAgent()

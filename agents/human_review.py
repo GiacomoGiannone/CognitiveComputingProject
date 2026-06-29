@@ -68,28 +68,6 @@ class HumanReviewAgent:
             return {"action": "reject", "feedback": None}
         else:
             return {"action": "reject", "feedback": "Invalid choice"}
-    
-    # def apply_feedback(self, post: Dict, feedback: str, writer_agent) -> Dict:
-    #     """Applica il feedback e rigenera il post"""
-        
-    #     modified_prompt = f"""
-    #     Original post:
-    #     {post.get('content', '')}
-        
-    #     User feedback for modification:
-    #     {feedback}
-        
-    #     Please regenerate the post addressing this feedback while maintaining quality and citations.
-    #     """
-        
-    #     # Usa il writer_agent per rigenerare
-    #     new_post = writer_agent.write_post(
-    #         topic=post.get('topic'),
-    #         research_results={'research_summary': modified_prompt},
-    #         max_length=len(post.get('content', '').split())
-    #     )
-        
-    #     return new_post
 
 
 @traceable(name="PlanUpdater", run_type="chain", tags=["planner", "update"])
@@ -108,7 +86,6 @@ def _update_plan_after_post(state):
     )
     
     completed_topic = state.get('current_topic')
-    final_post = state.get('final_post', {})
     
     if not completed_topic:
         print(" No topic to mark as completed")
@@ -205,11 +182,11 @@ def human_review_agent(state):
                     # Recupera i claims estratti dal fact checker
                     extracted_claims = fact_check.get('extracted_claims', [])
                     
-                    # Salva in Neo4j con il titolo lungo e i topic generici estratti (dal state)
+                    # Salva in Neo4j con il titolo lungo e i topic generici estratti (dallo state)
                     post_id = kg.add_post(
                         title=post_title,  # Titolo specifico e lungo
                         content=post.get('content', ''),
-                        topics=extracted_topics,  # Topic generici dal state, non ri-estratti
+                        topics=extracted_topics,  # Topic generici dallo state, non ri-estratti
                         sources=source_urls,
                         claims=extracted_claims
                     )
@@ -227,7 +204,8 @@ def human_review_agent(state):
                         if all_existing_topics and extracted_topics:
                             # Chiedi all'LLM di valutare relazioni semantiche
                             new_topics_str = ", ".join(extracted_topics)
-                            existing_str = ", ".join(all_existing_topics[-10:])  # Ultimi 10 per ridurre token
+                            #analizziamo tutti i topic esistenti, non gli ultimi X
+                            existing_str = ", ".join(all_existing_topics)  # Tutti i topic esistenti
                             
                             relation_prompt = f"""
                             Analizza le relazioni semantiche tra questi topic:
