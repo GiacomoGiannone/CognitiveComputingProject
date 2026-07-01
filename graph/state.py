@@ -30,3 +30,4 @@ class BlogState(TypedDict, total=False):
     requires_research: bool
     iteration: int
     max_iterations: int
+    proceed_to_next_topic: bool
